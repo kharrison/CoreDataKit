@@ -65,6 +65,19 @@ extension ManagedObject where Self: NSManagedObject {
         return Result { try context.fetch(request) }
     }
     
+    public static func fetchFirst(_ context: NSManagedObjectContext, configure: configureRequest? = nil) -> Self? {
+        let result = Self.fetch(context) { request in
+            request.returnsObjectsAsFaults = false
+            request.fetchLimit = 1
+        }
+        
+        guard case let .success(objects) = result,
+              let object = objects.first else {
+                  return nil
+              }
+        return object
+    }
+    
     public static func fetchOrCreate(_ context: NSManagedObjectContext, matching predicate: NSPredicate) -> Self {
         let result = fetch(context) { request in
             request.predicate = predicate
