@@ -89,6 +89,20 @@ final class CoreDataContainerTests: XCTestCase {
         let storeDescription = try XCTUnwrap( container.persistentStoreDescriptions.first)
         XCTAssertEqual(storeDescription.url, URL(fileURLWithPath: "/dev/null"))
     }
+    
+    func testCreateStoreWithCustomURL() throws {
+        let url = FileManager.default.temporaryDirectory
+        container = CoreDataContainer(name: modelName, bundle: .module, url: url)
+        let storeDescription = try XCTUnwrap( container.persistentStoreDescriptions.first)
+        XCTAssertEqual(storeDescription.url, url)
+    }
+    
+    func testInMemoryStoreOverridesCustomURL() throws {
+        let url = FileManager.default.temporaryDirectory
+        container = CoreDataContainer(name: modelName, bundle: .module, url: url, inMemory: true)
+        let storeDescription = try XCTUnwrap( container.persistentStoreDescriptions.first)
+        XCTAssertEqual(storeDescription.url, URL(fileURLWithPath: "/dev/null"))
+    }
 
     func testLoadStoreSync() throws {
         container.loadPersistentStores { description, error in

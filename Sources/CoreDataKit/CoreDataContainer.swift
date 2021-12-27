@@ -67,19 +67,28 @@ public final class CoreDataContainer: NSPersistentContainer {
     /// object context but does not load the persistent store.
     ///
     /// - Parameter name: The name of the persistent container.
-    ///   By default, this will also be used as the model name.
-    /// - Parameter bundle: An optional bundle to load the model from.
-    ///   The default is to look in the `.main` bundle.
+    ///   By default, this will also be use as the name of the store
+    ///   sqlite file.
+    ///
+    /// - Parameter bundle: An optional bundle to load the model(s) from.
+    ///   All models found in the bundle will be merged.
+    ///   Default is `.main`.
+    ///
+    /// - Parameter url: A URL for the location of the persistent store.
+    ///   If not specified the store is created using the container name
+    ///   in the default container directory. Default is `nil`
+    ///
     /// - Parameter inMemory: Create the SQLite store in memory.
     ///   Default is `false`.
+    ///
     /// - Returns: A `CoreDataController` object.
     
-    public init(name: String, bundle: Bundle = .main, inMemory: Bool = false) {
+    public init(name: String, bundle: Bundle = .main, url: URL? = nil, inMemory: Bool = false) {
         guard let mom = NSManagedObjectModel.mergedModel(from: [bundle]) else {
             fatalError("Failed to load mom")
         }
         super.init(name: name, managedObjectModel: mom)
-        configureDefaults(inMemory)
+        configureDefaults(url: url, inMemory: inMemory)
     }
        
     /// The `URL` of the persistent store for this Core Data Stack. If there
@@ -140,12 +149,16 @@ public final class CoreDataContainer: NSPersistentContainer {
         try? FileManager.default.removeItem(at: journalURL)
     }
     
-    private func configureDefaults(_ inMemory: Bool = false) {
+    private func configureDefaults(url: URL? = nil, inMemory: Bool = false) {
         if let storeDescription = persistentStoreDescriptions.first {
             storeDescription.shouldMigrateStoreAutomatically = true
             storeDescription.shouldInferMappingModelAutomatically = true
             storeDescription.shouldAddStoreAsynchronously = true
             storeDescription.isReadOnly = false
+            
+            if url != nil {
+                storeDescription.url = url
+            }
             
             if inMemory {
                 storeDescription.url = URL(fileURLWithPath: "/dev/null")
