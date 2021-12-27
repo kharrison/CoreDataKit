@@ -67,7 +67,7 @@ public final class CoreDataContainer: NSPersistentContainer {
     /// object context but does not load the persistent store.
     ///
     /// - Parameter name: The name of the persistent container.
-    ///   By default, this will also be used at the model name.
+    ///   By default, this will also be used as the model name.
     /// - Parameter bundle: An optional bundle to load the model from.
     ///   The default is to look in the `.main` bundle.
     /// - Parameter inMemory: Create the SQLite store in memory.
