@@ -63,7 +63,7 @@ public final class CoreDataContainer: NSPersistentContainer {
     }
         
     /// Creates and returns a `CoreDataController` object. It creates the
-    /// managed object model,persistent store coordinator and main managed
+    /// managed object model, persistent store coordinator and main managed
     /// object context but does not load the persistent store.
     ///
     /// - Parameter name: The name of the persistent container.
