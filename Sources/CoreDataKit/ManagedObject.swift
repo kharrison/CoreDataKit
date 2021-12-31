@@ -72,9 +72,10 @@ extension ManagedObject where Self: NSManagedObject {
         }
         
         guard case let .success(objects) = result,
-              let object = objects.first else {
-                  return nil
-              }
+              let object = objects.first
+        else {
+            return nil
+        }
         return object
     }
     
@@ -86,7 +87,8 @@ extension ManagedObject where Self: NSManagedObject {
         }
 
         guard case let .success(objects) = result,
-              let object = objects.first else {
+              let object = objects.first
+        else {
             return Self(context: context)
         }
         
