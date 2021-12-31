@@ -31,7 +31,7 @@ import Foundation
 
 /// `CoreDataContainer` is a subclass of `NSPersistentContainer`
 /// for creating and using a Core Data stack.
-/// 
+///
 /// The persistent store description that will be used to
 /// create/load the store is configured with the following
 /// defaults:
@@ -55,7 +55,7 @@ public final class CoreDataContainer: NSPersistentContainer {
     ///   scheme appends the directory "UNITTEST" to the
     ///   default directory returned by `NSPersistentContainer`.
     
-    public override class func defaultDirectoryURL() -> URL {
+    override public class func defaultDirectoryURL() -> URL {
         if ProcessInfo.processInfo.arguments.contains("-UNITTEST") {
             return super.defaultDirectoryURL().appendingPathComponent("UNITTEST", isDirectory: true)
         }
@@ -67,7 +67,7 @@ public final class CoreDataContainer: NSPersistentContainer {
     /// object context but does not load the persistent store.
     ///
     /// - Parameter name: The name of the persistent container.
-    ///   By default, this will also be use as the name of the store
+    ///   By default, this will also be used as the name of the store
     ///   sqlite file.
     ///
     /// - Parameter bundle: An optional bundle to load the model(s) from.
@@ -76,7 +76,7 @@ public final class CoreDataContainer: NSPersistentContainer {
     ///
     /// - Parameter url: A URL for the location of the persistent store.
     ///   If not specified the store is created using the container name
-    ///   in the default container directory. Default is `nil`
+    ///   in the default container directory. Default is `nil`.
     ///
     /// - Parameter inMemory: Create the SQLite store in memory.
     ///   Default is `false`.
@@ -84,9 +84,14 @@ public final class CoreDataContainer: NSPersistentContainer {
     /// - Returns: A `CoreDataController` object.
     
     public init(name: String, bundle: Bundle = .main, url: URL? = nil, inMemory: Bool = false) {
-        guard let mom = NSManagedObjectModel.mergedModel(from: [bundle]) else {
-            fatalError("Failed to load mom")
+        guard let momURL = bundle.url(forResource: name, withExtension: "momd") else {
+            fatalError("Unable to find \(name).momd in bundle \(bundle.bundleURL)")
         }
+        
+        guard let mom = NSManagedObjectModel(contentsOf: momURL) else {
+            fatalError("Unable to create model from \(momURL)")
+        }
+
         super.init(name: name, managedObjectModel: mom)
         configureDefaults(url: url, inMemory: inMemory)
     }
@@ -112,7 +117,7 @@ public final class CoreDataContainer: NSPersistentContainer {
     /// - Parameter handler: This handler block is executed on the calling
     ///   thread when the loading of the persistent store has completed.
     
-    public override func loadPersistentStores(completionHandler block: @escaping (NSPersistentStoreDescription, Error?) -> Void) {
+    override public func loadPersistentStores(completionHandler block: @escaping (NSPersistentStoreDescription, Error?) -> Void) {
         super.loadPersistentStores { storeDescription, error in
             if error == nil {
                 self.isStoreLoaded = true
@@ -156,7 +161,7 @@ public final class CoreDataContainer: NSPersistentContainer {
             storeDescription.shouldAddStoreAsynchronously = true
             storeDescription.isReadOnly = false
             
-            if url != nil {
+            if let url = url {
                 storeDescription.url = url
             }
             
