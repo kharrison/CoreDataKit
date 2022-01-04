@@ -67,11 +67,10 @@ public final class CoreDataContainer: NSPersistentContainer {
     /// object context but does not load the persistent store.
     ///
     /// - Parameter name: The name of the persistent container.
-    ///   By default, this will also be used as the name of the store
-    ///   sqlite file.
+    ///   By default, this will also be used as the name of the
+    ///   managed object model and persistent store sql file.
     ///
     /// - Parameter bundle: An optional bundle to load the model(s) from.
-    ///   All models found in the bundle will be merged.
     ///   Default is `.main`.
     ///
     /// - Parameter url: A URL for the location of the persistent store.
@@ -83,7 +82,7 @@ public final class CoreDataContainer: NSPersistentContainer {
     ///
     /// - Returns: A `CoreDataController` object.
     
-    public init(name: String, bundle: Bundle = .main, url: URL? = nil, inMemory: Bool = false) {
+    public convenience init(name: String, bundle: Bundle = .main, url: URL? = nil, inMemory: Bool = false) {
         guard let momURL = bundle.url(forResource: name, withExtension: "momd") else {
             fatalError("Unable to find \(name).momd in bundle \(bundle.bundleURL)")
         }
@@ -92,6 +91,29 @@ public final class CoreDataContainer: NSPersistentContainer {
             fatalError("Unable to create model from \(momURL)")
         }
 
+        self.init(name: name, mom: mom, url: url, inMemory: inMemory)
+    }
+
+    /// Creates and returns a `CoreDataController` object. It creates the
+    /// persistent store coordinator and main managed object context but
+    /// does not load the persistent store.
+    ///
+    /// - Parameter name: The name of the persistent container.
+    ///   By default, this is used to name the persistent store
+    ///   sql file.
+    ///
+    /// - Parameter mom: The managed object model.
+    ///
+    /// - Parameter url: A URL for the location of the persistent store.
+    ///   If not specified the store is created using the container name
+    ///   in the default container directory. Default is `nil`.
+    ///
+    /// - Parameter inMemory: Create the SQLite store in memory.
+    ///   Default is `false`.
+    ///
+    /// - Returns: A `CoreDataController` object.
+    
+    public init(name: String, mom: NSManagedObjectModel, url: URL? = nil, inMemory: Bool = false) {
         super.init(name: name, managedObjectModel: mom)
         configureDefaults(url: url, inMemory: inMemory)
     }
