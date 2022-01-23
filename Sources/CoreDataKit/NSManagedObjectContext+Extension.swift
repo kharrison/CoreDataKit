@@ -70,4 +70,30 @@ extension NSManagedObjectContext {
             _ = self.saveOrRollback()
         }
     }
+    
+    /// Batch delete objects and optionally merge changes into multiple
+    /// contexts.
+    ///
+    /// A batch delete is faster to delete multiple objects but it bypasses
+    /// any validation rules and does not automatically update any of the
+    /// objects which may be in memory unless you merge the change into the
+    /// context.
+    ///
+    /// The batch delete is performed on a background managed object context.
+    ///
+    /// - Parameters:
+    ///   - objectIDs: NSManagedObjectIDs of objects to delete.
+    ///   - contexts: Optional array of managed object contexts which will
+    ///     have the changes merged.
+    public func batchDelete(objectIDs: [NSManagedObjectID], mergeInto contexts: [NSManagedObjectContext]? = nil) throws {
+        let request = NSBatchDeleteRequest(objectIDs: objectIDs)
+        request.resultType = .resultTypeObjectIDs
+        let deleteResult = try execute(request) as? NSBatchDeleteResult
+        
+        if let contexts = contexts,
+           let deletedIDs = deleteResult?.result as? [NSManagedObjectID] {
+            let changes = [NSDeletedObjectsKey: deletedIDs]
+            NSManagedObjectContext.mergeChanges(fromRemoteContextSave: changes, into: contexts)
+        }
+    }
 }
