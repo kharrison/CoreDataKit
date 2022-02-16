@@ -86,6 +86,8 @@ extension NSManagedObjectContext {
     ///   - contexts: Optional array of managed object contexts which will
     ///     have the changes merged.
     public func batchDelete(objectIDs: [NSManagedObjectID], mergeInto contexts: [NSManagedObjectContext]? = nil) throws {
+        guard !objectIDs.isEmpty else { return }
+        
         let request = NSBatchDeleteRequest(objectIDs: objectIDs)
         request.resultType = .resultTypeObjectIDs
         let deleteResult = try execute(request) as? NSBatchDeleteResult
