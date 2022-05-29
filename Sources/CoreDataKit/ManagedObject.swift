@@ -67,6 +67,7 @@ extension ManagedObject where Self: NSManagedObject {
     
     public static func fetchFirst(_ context: NSManagedObjectContext, configure: configureRequest? = nil) -> Self? {
         let result = Self.fetch(context) { request in
+            if let configure = configure { configure(request) }
             request.returnsObjectsAsFaults = false
             request.fetchLimit = 1
         }
