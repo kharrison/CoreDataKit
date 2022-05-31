@@ -66,6 +66,9 @@ public final class CoreDataContainer: NSPersistentContainer {
         }
         return super.defaultDirectoryURL()
     }
+    
+    /// Is the local SQLite store in memory?
+    private let inMemory: Bool
         
     /// Creates and returns a `CoreDataController` object. It creates the
     /// managed object model, persistent store coordinator and main managed
@@ -119,10 +122,11 @@ public final class CoreDataContainer: NSPersistentContainer {
     /// - Returns: A `CoreDataController` object.
     
     public init(name: String, mom: NSManagedObjectModel, url: URL? = nil, inMemory: Bool = false) {
+        self.inMemory = inMemory
         super.init(name: name, managedObjectModel: mom)
         configureDefaults(url: url, inMemory: inMemory)
     }
-       
+    
     /// The `URL` of the persistent store for this Core Data Stack. If there
     /// is more than one store this property returns the first store it finds.
     /// The store may not yet exist. It will be created at this URL by default
@@ -160,16 +164,17 @@ public final class CoreDataContainer: NSPersistentContainer {
                 self.viewContext.automaticallyMergesChangesFromParent = true
                 self.viewContext.name = "viewContext"
                 self.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
-                do {
-                    try self.viewContext.setQueryGenerationFrom(.current)
-                } catch {
-                    completionError = error
+                
+                // Pin the view context to the current query generation.
+                // This is not supported for an in-memory store
+                if !self.inMemory {
+                    completionError = self.pin(self.viewContext)
                 }
-            }
+             }
             block(storeDescription, completionError)
         }
     }
-    
+        
     /// Delete the SQLite files for a store.
     ///
     /// Deletes the `.sqlite`, `.sqlite=shm` and `.sqlite-wal` files
@@ -212,5 +217,14 @@ public final class CoreDataContainer: NSPersistentContainer {
                 storeDescription.shouldAddStoreAsynchronously = false
             }
         }
+    }
+    
+    private func pin(_ context: NSManagedObjectContext) -> Error? {
+        do {
+            try self.viewContext.setQueryGenerationFrom(.current)
+        } catch {
+            return error
+        }
+        return nil
     }
 }
