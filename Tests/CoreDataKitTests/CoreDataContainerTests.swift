@@ -93,6 +93,13 @@ final class CoreDataContainerTests: XCTestCase {
         let storeDescription = try XCTUnwrap( container.persistentStoreDescriptions.first)
         XCTAssertFalse(storeDescription.shouldAddStoreAsynchronously)
     }
+    
+    func testHistoryTrackingKeyTrueByDefault() throws {
+        let container = try XCTUnwrap(container)
+        let storeDescription = try XCTUnwrap( container.persistentStoreDescriptions.first)
+        let historyTrackingOption = try XCTUnwrap(storeDescription.options[NSPersistentHistoryTrackingKey] as? NSNumber)
+        XCTAssertTrue(historyTrackingOption.boolValue)
+    }
 
     func testCreateStoreInMemory() throws {
         let container = try XCTUnwrap(container)
@@ -164,5 +171,23 @@ final class CoreDataContainerTests: XCTestCase {
             XCTAssertNil(error)
         }
         XCTAssertNotNil(container.viewContext.name)
+    }
+    
+    func testViewContextMergePolicy() throws {
+        let container = try XCTUnwrap(container)
+        container.loadPersistentStores { description, error in
+            XCTAssertNil(error)
+        }
+        let policy = try XCTUnwrap(container.viewContext.mergePolicy as? NSMergePolicy)
+        XCTAssertEqual(policy, NSMergePolicy.mergeByPropertyObjectTrump)
+    }
+    
+    func testViewContextQueryGeneration() throws {
+        let container = try XCTUnwrap(container)
+        container.loadPersistentStores { description, error in
+            XCTAssertNil(error)
+        }
+        let token = try XCTUnwrap(container.viewContext.queryGenerationToken)
+        XCTAssertEqual(token, .current)
     }
 }
