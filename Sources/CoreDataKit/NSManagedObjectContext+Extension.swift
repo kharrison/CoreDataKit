@@ -32,6 +32,25 @@ extension NSManagedObjectContext {
     /// Save the context
     ///
     /// If the current context has unsaved changes attempts
+    /// to commit to parent store.
+    ///
+    /// - Returns: nil if successful or an NSError.
+    ///
+    /// - Note: You must perform this operation on the queue
+    /// specified for the context.
+    public func saveIfChanged() -> NSError? {
+        guard hasChanges else { return nil }
+        do {
+            try save()
+            return nil
+        } catch {
+            return error as NSError
+        }
+    }
+
+    /// Save the context
+    ///
+    /// If the current context has unsaved changes attempts
     /// to commit to parent store. If the save operation fails,
     /// rollback to the last committed state.
     ///
