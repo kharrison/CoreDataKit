@@ -42,6 +42,11 @@ import Foundation
 /// - `shouldInferMappingModelAutomatically`: true
 /// - `shouldMigrateStoreAutomatically`: true
 ///
+/// The following persistent store options are set by
+/// default:
+///
+/// - `NSPersistentHistoryTrackingKey`: true
+///
 /// If you want to change these defaults modify the store
 /// description before you load the store.
 
@@ -135,19 +140,33 @@ public final class CoreDataContainer: NSPersistentContainer {
     /// Load the persistent store.
     ///
     /// Call this method after creating the container to load the store.
+    /// After the store has been loaded, the view context is configured
+    /// as follows:
+    ///
+    /// - `automaticallyMergesChangesFromParent`: `true`
+    /// - `name`: `viewContext`
+    /// - `mergePolicy`: `NSMergeByPropertyObjectTrumpMergePolicy`
+    ///
+    /// The query generation is also pinned to the current generation.
     ///
     /// - Parameter handler: This handler block is executed on the calling
     ///   thread when the loading of the persistent store has completed.
     
     override public func loadPersistentStores(completionHandler block: @escaping (NSPersistentStoreDescription, Error?) -> Void) {
         super.loadPersistentStores { storeDescription, error in
+            var completionError: Error? = error
             if error == nil {
                 self.isStoreLoaded = true
                 self.viewContext.automaticallyMergesChangesFromParent = true
                 self.viewContext.name = "viewContext"
                 self.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+                do {
+                    try self.viewContext.setQueryGenerationFrom(.current)
+                } catch {
+                    completionError = error
+                }
             }
-            block(storeDescription, error)
+            block(storeDescription, completionError)
         }
     }
     
@@ -182,6 +201,7 @@ public final class CoreDataContainer: NSPersistentContainer {
             storeDescription.shouldInferMappingModelAutomatically = true
             storeDescription.shouldAddStoreAsynchronously = true
             storeDescription.isReadOnly = false
+            storeDescription.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
             
             if let url = url {
                 storeDescription.url = url
