@@ -221,7 +221,7 @@ public final class CoreDataContainer: NSPersistentContainer {
     
     private func pin(_ context: NSManagedObjectContext) -> Error? {
         do {
-            try self.viewContext.setQueryGenerationFrom(.current)
+            try context.setQueryGenerationFrom(.current)
         } catch {
             return error
         }
