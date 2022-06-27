@@ -68,7 +68,7 @@ public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
         didSet {
             if let storeDescription = persistentStoreDescriptions.first {
                 var options: NSPersistentCloudKitContainerOptions?
-                if let containerIdentifier {
+                if let containerIdentifier = containerIdentifier {
                     options = NSPersistentCloudKitContainerOptions(containerIdentifier: containerIdentifier)
                 }
                 storeDescription.cloudKitContainerOptions = options
