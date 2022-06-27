@@ -181,13 +181,4 @@ final class CoreDataContainerTests: XCTestCase {
         let policy = try XCTUnwrap(container.viewContext.mergePolicy as? NSMergePolicy)
         XCTAssertEqual(policy, NSMergePolicy.mergeByPropertyObjectTrump)
     }
-    
-    func testViewContextQueryGeneration() throws {
-        let container = try XCTUnwrap(container)
-        container.loadPersistentStores { description, error in
-            XCTAssertNil(error)
-        }
-        let token = try XCTUnwrap(container.viewContext.queryGenerationToken)
-        XCTAssertEqual(token, .current)
-    }
 }
