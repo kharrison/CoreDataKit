@@ -1,11 +1,11 @@
-# ````
+# ``CoreDataKit``
 
-<!--@START_MENU_TOKEN@-->Summary<!--@END_MENU_TOKEN@-->
+A Core Data Helper package.
 
 ## Overview
 
-<!--@START_MENU_TOKEN@-->Text<!--@END_MENU_TOKEN@-->
-
+This package contains a subclasses of `NSPersistentContainer` and `NSPersistentCloudKitContainer` and a number of useful Core Data extensions.
+ 
 ## Topics
 
 ### <!--@START_MENU_TOKEN@-->Group<!--@END_MENU_TOKEN@-->

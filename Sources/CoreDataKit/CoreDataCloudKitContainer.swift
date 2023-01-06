@@ -1,4 +1,4 @@
-//  Copyright © 2022 Keith Harrison. All rights reserved.
+//  Copyright © 2022-2023 Keith Harrison. All rights reserved.
 //
 //  Redistribution and use in source and binary forms, with or without
 //  modification, are permitted provided that the following conditions are met:
@@ -30,55 +30,24 @@ import CloudKit
 import CoreData
 import Foundation
 
-/// `CoreDataCloudKitContainer` is a subclass of `NSPersistentContainer`
-/// for creating and using a Core Data stack that syncs with a
-/// private CloudKit schema.
+/// `CoreDataCloudKitContainer` is a subclass of `NSPersistentCloudKitContainer`
+/// for creating and using a Core Data stack that syncs with CloudKit.
 ///
-/// The persistent store description that will be used to
-/// create/load the store is configured with the following
-/// defaults:
+/// CoreDataCloudKitContainer is a subclass of NSPersistentCloudKitContainer capable of
+/// managing both CloudKit-backed and non-cloud stores.
 ///
-/// - `url`: store name appended to `defaultDirectoryURL`
-/// - `isReadOnly`: false
-/// - `shouldAddStoreAsynchronously`: true
-/// - `shouldInferMappingModelAutomatically`: true
-/// - `shouldMigrateStoreAutomatically`: true
-///
-/// The following persistent store options are set by
-/// default:
-///
-/// - `NSPersistentHistoryTrackingKey`: true
-/// - `NSPersistentStoreRemoteChangeNotificationPostOptionKey`: true
-///
-/// The following `NSPersistentCloudKitContainerOptions` must be set
-/// for CloudKit sync to work:
-///
-/// - `containerIdentifier`: set the app-specific container identifier
-///    before loading the store.
+/// If you have a CloudKit container identifier in the app's
+/// entitlements the first identifier is used to sync with a
+/// private CloudKit store. Otherwise, the store is local.
 ///
 /// If you want to change these defaults modify the store
 /// description before you load the store.
 
 @available(iOS 13.0, macOS 10.15, watchOS 6.0, tvOS 13.0, *)
 public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
-    /// CloudKit container identifier.
-    ///
-    /// Set the container identifier **before** loading the store.
-    public var containerIdentifier: String? {
-        didSet {
-            if let storeDescription = persistentStoreDescriptions.first {
-                var options: NSPersistentCloudKitContainerOptions?
-                if let containerIdentifier = containerIdentifier {
-                    options = NSPersistentCloudKitContainerOptions(containerIdentifier: containerIdentifier)
-                }
-                storeDescription.cloudKitContainerOptions = options
-            }
-        }
-    }
-    
     /// Author used for the viewContext as an identifier
     /// in persistent history transactions.
-    public let appTransactionAuthorName = "app"
+    public var appTransactionAuthorName = "app"
     
     /// Default directory for the persistent stores
     /// - Returns: A `URL` for the directory containing the
@@ -95,12 +64,30 @@ public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
         return super.defaultDirectoryURL()
     }
     
-    /// Is the local SQLite store in memory?
-    private let inMemory: Bool
-    
     /// Creates and returns a `CoreDataCloudKitController` object. It creates the
     /// managed object model, persistent store coordinator and main managed
     /// object context but does not load the persistent store.
+    ///
+    /// The default container has a persistent store description
+    /// configured with the following defaults:
+    ///
+    /// - `url`: container name appended to `defaultDirectoryURL`
+    /// - `isReadOnly`: false
+    /// - `shouldAddStoreAsynchronously`: true
+    /// - `shouldInferMappingModelAutomatically`: true
+    /// - `shouldMigrateStoreAutomatically`: true
+    /// The following persistent store options are set by
+    /// default:
+    ///
+    /// - `NSPersistentHistoryTrackingKey`: true
+    /// - `NSPersistentStoreRemoteChangeNotificationPostOptionKey`: true
+    ///
+    /// If you have a CloudKit container identifier(s) in the app's
+    /// entitlements the first identifier is assigned to the default
+    /// container store. Otherwise, the store is local.
+    ///
+    /// If you want to change these defaults modify the store
+    /// description before you load the store.
     ///
     /// - Parameter name: The name of the persistent container.
     ///   By default, this will also be used as the name of the
@@ -109,16 +96,14 @@ public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
     /// - Parameter bundle: An optional bundle to load the model(s) from.
     ///   Default is `.main`.
     ///
-    /// - Parameter url: A URL for the location of the persistent store.
-    ///   If not specified the store is created using the container name
-    ///   in the default container directory. Default is `nil`.
-    ///
     /// - Parameter inMemory: Create the SQLite store in memory.
-    ///   Default is `false`.
+    ///   Default is `false`. Using an in-memory store overrides
+    ///   the store url and sets `shouldAddStoreAsynchronously` to
+    ///   `false.`
     ///
     /// - Returns: A `CoreDataCloudKitController` object.
     
-    public convenience init(name: String, bundle: Bundle = .main, url: URL? = nil, inMemory: Bool = false) {
+    public convenience init(name: String, bundle: Bundle = .main, inMemory: Bool = false) {
         guard let momURL = bundle.url(forResource: name, withExtension: "momd") else {
             fatalError("Unable to find \(name).momd in bundle \(bundle.bundleURL)")
         }
@@ -127,12 +112,34 @@ public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
             fatalError("Unable to create model from \(momURL)")
         }
         
-        self.init(name: name, mom: mom, url: url, inMemory: inMemory)
+        self.init(name: name, mom: mom, inMemory: inMemory)
     }
     
     /// Creates and returns a `CoreDataCloudKitController` object. It creates the
     /// persistent store coordinator and main managed object context but
     /// does not load the persistent store.
+    ///
+    /// The default container has a persistent store description
+    /// configured with the following defaults:
+    ///
+    /// - `url`: container name appended to `defaultDirectoryURL`
+    /// - `isReadOnly`: false
+    /// - `shouldAddStoreAsynchronously`: true
+    /// - `shouldInferMappingModelAutomatically`: true
+    /// - `shouldMigrateStoreAutomatically`: true
+    ///
+    /// The following persistent store options are set by
+    /// default:
+    ///
+    /// - `NSPersistentHistoryTrackingKey`: true
+    /// - `NSPersistentStoreRemoteChangeNotificationPostOptionKey`: true
+    ///
+    /// If you have a CloudKit container identifier(s) in the app's
+    /// entitlements the first identifier is assigned to the default
+    /// container store. Otherwise, the store is local.
+    ///
+    /// If you want to change these defaults modify the store
+    /// description before you load the store.
     ///
     /// - Parameter name: The name of the persistent container.
     ///   By default, this is used to name the persistent store
@@ -140,19 +147,16 @@ public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
     ///
     /// - Parameter mom: The managed object model.
     ///
-    /// - Parameter url: A URL for the location of the persistent store.
-    ///   If not specified the store is created using the container name
-    ///   in the default container directory. Default is `nil`.
-    ///
     /// - Parameter inMemory: Create the SQLite store in memory.
-    ///   Default is `false`.
+    ///   Default is `false`. Using an in-memory store overrides
+    ///   the store url and sets `shouldAddStoreAsynchronously` to
+    ///   `false.`
     ///
     /// - Returns: A `CoreDataCloudKitController` object.
     
-    public init(name: String, mom: NSManagedObjectModel, url: URL? = nil, inMemory: Bool = false) {
-        self.inMemory = inMemory
+    public init(name: String, mom: NSManagedObjectModel, inMemory: Bool = false) {
         super.init(name: name, managedObjectModel: mom)
-        configureDefaults(url: url, inMemory: inMemory)
+        configureDefaults(inMemory: inMemory)
     }
     
     /// The `URL` of the persistent store for this Core Data Stack. If there
@@ -166,9 +170,6 @@ public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
         return firstDescription.url
     }
     
-    /// A read-only flag indicating if the persistent store is loaded.
-    public private(set) var isStoreLoaded = false
-        
     /// Load the persistent store.
     ///
     /// Call this method after creating the container to load the store.
@@ -179,7 +180,8 @@ public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
     /// - `name`: `viewContext`
     /// - `mergePolicy`: `NSMergeByPropertyObjectTrumpMergePolicy`
     ///
-    /// The query generation is also pinned to the current generation.
+    /// The query generation is also pinned to the current generation
+    /// (unless this is an in-memory store).
     ///
     /// - Parameter handler: This handler block is executed on the calling
     ///   thread when the loading of the persistent store has completed.
@@ -188,7 +190,6 @@ public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
         super.loadPersistentStores { storeDescription, error in
             var completionError: Error? = error
             if error == nil {
-                self.isStoreLoaded = true
                 self.viewContext.automaticallyMergesChangesFromParent = true
                 self.viewContext.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
                 self.viewContext.name = "viewContext"
@@ -196,7 +197,7 @@ public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
                 
                 // Pin the view context to the current query generation.
                 // This is not supported for an in-memory store
-                if !self.inMemory {
+                if storeDescription.url != URL(fileURLWithPath: "/dev/null") {
                     completionError = self.pin(self.viewContext)
                 }
             }
@@ -204,19 +205,11 @@ public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
         }
     }
        
-    private func configureDefaults(url: URL? = nil, inMemory: Bool = false) {
+    private func configureDefaults(inMemory: Bool = false) {
         if let storeDescription = persistentStoreDescriptions.first {
-            storeDescription.shouldMigrateStoreAutomatically = true
-            storeDescription.shouldInferMappingModelAutomatically = true
             storeDescription.shouldAddStoreAsynchronously = true
-            storeDescription.isReadOnly = false
             storeDescription.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
             storeDescription.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
-
-            if let url = url {
-                storeDescription.url = url
-            }
-                       
             if inMemory {
                 storeDescription.url = URL(fileURLWithPath: "/dev/null")
                 storeDescription.shouldAddStoreAsynchronously = false
