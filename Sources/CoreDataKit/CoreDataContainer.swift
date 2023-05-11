@@ -1,4 +1,4 @@
-//  Copyright © 2021 Keith Harrison. All rights reserved.
+//  Copyright © 2021-2023 Keith Harrison. All rights reserved.
 //
 //  Redistribution and use in source and binary forms, with or without
 //  modification, are permitted provided that the following conditions are met:
@@ -36,11 +36,7 @@ import Foundation
 /// create/load the store is configured with the following
 /// defaults:
 ///
-/// - `url`: store name appended to `defaultDirectoryURL`
-/// - `isReadOnly`: false
 /// - `shouldAddStoreAsynchronously`: true
-/// - `shouldInferMappingModelAutomatically`: true
-/// - `shouldMigrateStoreAutomatically`: true
 ///
 /// The following persistent store options are set by
 /// default:
@@ -51,7 +47,12 @@ import Foundation
 /// description before you load the store.
 
 @available(iOS 10.0, macOS 10.12, watchOS 3.0, tvOS 10.0, *)
-public final class CoreDataContainer: NSPersistentContainer {
+public class CoreDataContainer: NSPersistentContainer {
+    /// Author used for the viewContext as an identifier
+    /// in persistent history transactions.
+    
+    public var appTransactionAuthorName = "app"
+
     /// Default directory for the persistent stores
     /// - Returns: A `URL` for the directory containing the
     ///   persistent store files.
@@ -66,13 +67,23 @@ public final class CoreDataContainer: NSPersistentContainer {
         }
         return super.defaultDirectoryURL()
     }
-    
-    /// Is the local SQLite store in memory?
-    private let inMemory: Bool
-        
+            
     /// Creates and returns a `CoreDataController` object. It creates the
     /// managed object model, persistent store coordinator and main managed
     /// object context but does not load the persistent store.
+    ///
+    /// The default container has a persistent store description
+    /// configured with the following defaults:
+    ///
+    /// - `shouldAddStoreAsynchronously`: true
+    ///
+    /// The following persistent store options are set by
+    /// default:
+    ///
+    /// - `NSPersistentHistoryTrackingKey`: true
+    ///
+    /// If you want to change these defaults modify the store
+    /// description before you load the store.
     ///
     /// - Parameter name: The name of the persistent container.
     ///   By default, this will also be used as the name of the
@@ -86,7 +97,9 @@ public final class CoreDataContainer: NSPersistentContainer {
     ///   in the default container directory. Default is `nil`.
     ///
     /// - Parameter inMemory: Create the SQLite store in memory.
-    ///   Default is `false`.
+    ///   Default is `false`. Using an in-memory store overrides
+    ///   the store url and sets `shouldAddStoreAsynchronously` to
+    ///   `false.`
     ///
     /// - Returns: A `CoreDataController` object.
     
@@ -117,12 +130,13 @@ public final class CoreDataContainer: NSPersistentContainer {
     ///   in the default container directory. Default is `nil`.
     ///
     /// - Parameter inMemory: Create the SQLite store in memory.
-    ///   Default is `false`.
+    ///   Default is `false`. Using an in-memory store overrides
+    ///   the store url and sets `shouldAddStoreAsynchronously` to
+    ///   `false.`
     ///
     /// - Returns: A `CoreDataController` object.
     
     public init(name: String, mom: NSManagedObjectModel, url: URL? = nil, inMemory: Bool = false) {
-        self.inMemory = inMemory
         super.init(name: name, managedObjectModel: mom)
         configureDefaults(url: url, inMemory: inMemory)
     }
@@ -131,6 +145,7 @@ public final class CoreDataContainer: NSPersistentContainer {
     /// is more than one store this property returns the first store it finds.
     /// The store may not yet exist. It will be created at this URL by default
     /// when first loaded.
+
     public var storeURL: URL? {
         guard let firstDescription = persistentStoreDescriptions.first else {
             return nil
@@ -150,8 +165,10 @@ public final class CoreDataContainer: NSPersistentContainer {
     /// - `automaticallyMergesChangesFromParent`: `true`
     /// - `name`: `viewContext`
     /// - `mergePolicy`: `NSMergeByPropertyObjectTrumpMergePolicy`
+    /// - `transactionAuthor`: see `appTransactionAuthorName`.
     ///
-    /// The query generation is also pinned to the current generation.
+    /// The query generation is also pinned to the current generation
+    /// (unless this is an in-memory store).
     ///
     /// - Parameter handler: This handler block is executed on the calling
     ///   thread when the loading of the persistent store has completed.
@@ -162,15 +179,16 @@ public final class CoreDataContainer: NSPersistentContainer {
             if error == nil {
                 self.isStoreLoaded = true
                 self.viewContext.automaticallyMergesChangesFromParent = true
+                self.viewContext.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
                 self.viewContext.name = "viewContext"
-                self.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+                self.viewContext.transactionAuthor = self.appTransactionAuthorName
                 
                 // Pin the view context to the current query generation.
                 // This is not supported for an in-memory store
-                if !self.inMemory {
+                if storeDescription.url != URL(fileURLWithPath: "/dev/null") {
                     completionError = self.pin(self.viewContext)
                 }
-             }
+            }
             block(storeDescription, completionError)
         }
     }
@@ -200,18 +218,13 @@ public final class CoreDataContainer: NSPersistentContainer {
         try? FileManager.default.removeItem(at: journalURL)
     }
     
-    private func configureDefaults(url: URL? = nil, inMemory: Bool = false) {
+    private func configureDefaults(url: URL?, inMemory: Bool) {
         if let storeDescription = persistentStoreDescriptions.first {
-            storeDescription.shouldMigrateStoreAutomatically = true
-            storeDescription.shouldInferMappingModelAutomatically = true
             storeDescription.shouldAddStoreAsynchronously = true
-            storeDescription.isReadOnly = false
             storeDescription.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
-            
-            if let url = url {
+            if let url {
                 storeDescription.url = url
             }
-            
             if inMemory {
                 storeDescription.url = URL(fileURLWithPath: "/dev/null")
                 storeDescription.shouldAddStoreAsynchronously = false

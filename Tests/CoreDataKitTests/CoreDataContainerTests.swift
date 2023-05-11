@@ -181,4 +181,23 @@ final class CoreDataContainerTests: XCTestCase {
         let policy = try XCTUnwrap(container.viewContext.mergePolicy as? NSMergePolicy)
         XCTAssertEqual(policy, NSMergePolicy.mergeByPropertyObjectTrump)
     }
+    
+    func testDefaultTransactionAuthor() throws {
+        let container = try XCTUnwrap(container)
+        container.loadPersistentStores { description, error in
+            XCTAssertNil(error)
+        }
+        let author = try XCTUnwrap(container.viewContext.transactionAuthor)
+        XCTAssertEqual(author, "app")
+    }
+    
+    func testCustomTransactionAuthor() throws {
+        let container = try XCTUnwrap(container)
+        container.appTransactionAuthorName = "Test"
+        container.loadPersistentStores { description, error in
+            XCTAssertNil(error)
+        }
+        let author = try XCTUnwrap(container.viewContext.transactionAuthor)
+        XCTAssertEqual(author, "Test")
+    }
 }

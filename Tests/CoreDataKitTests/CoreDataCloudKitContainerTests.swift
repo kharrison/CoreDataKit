@@ -82,6 +82,12 @@ final class CoreDataCloudKitContainerTests: XCTestCase {
         let storeDescription = try XCTUnwrap(container.persistentStoreDescriptions.first)
         XCTAssertTrue(storeDescription.shouldAddStoreAsynchronously)
     }
+    
+    func testShouldAddStoreAsynchronouslyFalseInMemory() throws {
+        let container = try XCTUnwrap(container)
+        let storeDescription = try XCTUnwrap( container.persistentStoreDescriptions.first)
+        XCTAssertFalse(storeDescription.shouldAddStoreAsynchronously)
+    }
         
     func testHistoryTrackingKeyTrueByDefault() throws {
         let container = try XCTUnwrap(container)
@@ -89,13 +95,49 @@ final class CoreDataCloudKitContainerTests: XCTestCase {
         let historyTrackingOption = try XCTUnwrap(storeDescription.options[NSPersistentHistoryTrackingKey] as? NSNumber)
         XCTAssertTrue(historyTrackingOption.boolValue)
     }
+
+    func testRemoteStoreNotificationTrueByDefault() throws {
+        let container = try XCTUnwrap(container)
+        let storeDescription = try XCTUnwrap( container.persistentStoreDescriptions.first)
+        let remoteChangeOption = try XCTUnwrap(storeDescription.options[NSPersistentStoreRemoteChangeNotificationPostOptionKey] as? NSNumber)
+        XCTAssertTrue(remoteChangeOption.boolValue)
+    }
     
+    func testSyncDisabled() throws {
+        let container = CoreDataCloudKitContainer(name: modelName, bundle: .module, syncDisabled: true)
+        let privateStore = try XCTUnwrap(container.persistentStoreDescriptions.first)
+        let syncStore = try XCTUnwrap(privateStore.copy() as? NSPersistentStoreDescription)
+        syncStore.url = CoreDataCloudKitContainer.defaultDirectoryURL().appendingPathComponent("sync.db")
+        syncStore.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(containerIdentifier: "test")
+        container.persistentStoreDescriptions.append(syncStore)
+        container.loadPersistentStores { description, error in
+            XCTAssertNil(error)
+            XCTAssertNil(description.cloudKitContainerOptions)
+        }
+    }
+       
     func testCreateStoreInMemory() throws {
         let container = try XCTUnwrap(container)
         let storeDescription = try XCTUnwrap( container.persistentStoreDescriptions.first)
         XCTAssertEqual(storeDescription.url, URL(fileURLWithPath: "/dev/null"))
     }
-       
+    
+    func testCreateStoreWithCustomURL() throws {
+        let url = FileManager.default.temporaryDirectory
+        container = CoreDataCloudKitContainer(name: modelName, bundle: .module, url: url)
+        let container = try XCTUnwrap(container)
+        let storeDescription = try XCTUnwrap( container.persistentStoreDescriptions.first)
+        XCTAssertEqual(storeDescription.url, url)
+    }
+    
+    func testInMemoryStoreOverridesCustomURL() throws {
+        let url = FileManager.default.temporaryDirectory
+        container = CoreDataCloudKitContainer(name: modelName, bundle: .module, url: url, inMemory: true)
+        let container = try XCTUnwrap(container)
+        let storeDescription = try XCTUnwrap( container.persistentStoreDescriptions.first)
+        XCTAssertEqual(storeDescription.url, URL(fileURLWithPath: "/dev/null"))
+    }
+    
     func testCeateWithMOM() throws {
         let momURL = try XCTUnwrap(Bundle.module.url(forResource: modelName, withExtension: "momd"))
         let mom = try XCTUnwrap(NSManagedObjectModel(contentsOf: momURL))
@@ -151,5 +193,24 @@ final class CoreDataCloudKitContainerTests: XCTestCase {
         }
         let policy = try XCTUnwrap(container.viewContext.mergePolicy as? NSMergePolicy)
         XCTAssertEqual(policy, NSMergePolicy.mergeByPropertyObjectTrump)
+    }
+    
+    func testDefaultTransactionAuthor() throws {
+        let container = try XCTUnwrap(container)
+        container.loadPersistentStores { description, error in
+            XCTAssertNil(error)
+        }
+        let author = try XCTUnwrap(container.viewContext.transactionAuthor)
+        XCTAssertEqual(author, "app")
+    }
+    
+    func testCustomTransactionAuthor() throws {
+        let container = try XCTUnwrap(container)
+        container.appTransactionAuthorName = "Test"
+        container.loadPersistentStores { description, error in
+            XCTAssertNil(error)
+        }
+        let author = try XCTUnwrap(container.viewContext.transactionAuthor)
+        XCTAssertEqual(author, "Test")
     }
 }

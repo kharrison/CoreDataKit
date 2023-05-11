@@ -33,21 +33,48 @@ import Foundation
 /// `CoreDataCloudKitContainer` is a subclass of `NSPersistentCloudKitContainer`
 /// for creating and using a Core Data stack that syncs with CloudKit.
 ///
-/// CoreDataCloudKitContainer is a subclass of NSPersistentCloudKitContainer capable of
-/// managing both CloudKit-backed and non-cloud stores.
+/// CoreDataCloudKitContainer is a subclass of NSPersistentCloudKitContainer
+/// capable of managing both CloudKit-backed and non-cloud stores.
 ///
 /// If you have a CloudKit container identifier in the app's
-/// entitlements the first identifier is used to sync with a
-/// private CloudKit store. Otherwise, the store is local.
+/// entitlements the first identifier is used to set the
+/// cloudKitContainerOptions identifier of the first
+/// persistent store description. Otherwise, the store is local.
+///
+/// The persistent store description that will be used to
+/// create/load the store is configured with the following
+/// defaults:
+///
+/// - `shouldAddStoreAsynchronously`: true
+///
+/// The following persistent store options are set by
+/// default:
+///
+/// - `NSPersistentHistoryTrackingKey`: true
+/// - `NSPersistentStoreRemoteChangeNotificationPostOptionKey`: true
 ///
 /// If you want to change these defaults modify the store
 /// description before you load the store.
 
 @available(iOS 13.0, macOS 10.15, watchOS 6.0, tvOS 13.0, *)
-public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
+public class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
     /// Author used for the viewContext as an identifier
     /// in persistent history transactions.
+    
     public var appTransactionAuthorName = "app"
+    
+    /// Disable CloudKit sync. Default is false.
+    ///
+    /// If this property is true any cloudKitContainerOptions
+    /// in the store descriptions are removed before the
+    /// store is loaded.
+    ///
+    /// - Note: This property can only be set when creating
+    /// the container. Once a store is loaded there is no
+    /// supported mechanism to disable sync, other than
+    /// unloading/removing the store.
+
+    private let syncDisabled: Bool
     
     /// Default directory for the persistent stores
     /// - Returns: A `URL` for the directory containing the
@@ -71,20 +98,18 @@ public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
     /// The default container has a persistent store description
     /// configured with the following defaults:
     ///
-    /// - `url`: container name appended to `defaultDirectoryURL`
-    /// - `isReadOnly`: false
     /// - `shouldAddStoreAsynchronously`: true
-    /// - `shouldInferMappingModelAutomatically`: true
-    /// - `shouldMigrateStoreAutomatically`: true
+    ///
     /// The following persistent store options are set by
     /// default:
     ///
     /// - `NSPersistentHistoryTrackingKey`: true
     /// - `NSPersistentStoreRemoteChangeNotificationPostOptionKey`: true
     ///
-    /// If you have a CloudKit container identifier(s) in the app's
-    /// entitlements the first identifier is assigned to the default
-    /// container store. Otherwise, the store is local.
+    /// If you have a CloudKit container identifier in the app's
+    /// entitlements the first identifier is used to set the
+    /// cloudKitContainerOptions identifier of the first
+    /// persistent store description. Otherwise, the store is local.
     ///
     /// If you want to change these defaults modify the store
     /// description before you load the store.
@@ -96,14 +121,23 @@ public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
     /// - Parameter bundle: An optional bundle to load the model(s) from.
     ///   Default is `.main`.
     ///
+    /// - Parameter url: A URL for the location of the persistent store.
+    ///   If not specified the store is created using the container name
+    ///   in the default container directory. Default is `nil`.
+
     /// - Parameter inMemory: Create the SQLite store in memory.
     ///   Default is `false`. Using an in-memory store overrides
     ///   the store url and sets `shouldAddStoreAsynchronously` to
     ///   `false.`
     ///
+    ///  - Parameter syncDisabled: Disable CloudKit sync.
+    ///   Default is `false`. When `true` any cloudKitContainerOptions
+    ///   set on the store description are removed before loading the
+    ///   store. Use this for SwiftUI previews and testing.
+    ///
     /// - Returns: A `CoreDataCloudKitController` object.
     
-    public convenience init(name: String, bundle: Bundle = .main, inMemory: Bool = false) {
+    public convenience init(name: String, bundle: Bundle = .main, url: URL? = nil, inMemory: Bool = false, syncDisabled: Bool = false) {
         guard let momURL = bundle.url(forResource: name, withExtension: "momd") else {
             fatalError("Unable to find \(name).momd in bundle \(bundle.bundleURL)")
         }
@@ -112,7 +146,7 @@ public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
             fatalError("Unable to create model from \(momURL)")
         }
         
-        self.init(name: name, mom: mom, inMemory: inMemory)
+        self.init(name: name, mom: mom, url: url, inMemory: inMemory, syncDisabled: syncDisabled)
     }
     
     /// Creates and returns a `CoreDataCloudKitController` object. It creates the
@@ -122,11 +156,7 @@ public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
     /// The default container has a persistent store description
     /// configured with the following defaults:
     ///
-    /// - `url`: container name appended to `defaultDirectoryURL`
-    /// - `isReadOnly`: false
     /// - `shouldAddStoreAsynchronously`: true
-    /// - `shouldInferMappingModelAutomatically`: true
-    /// - `shouldMigrateStoreAutomatically`: true
     ///
     /// The following persistent store options are set by
     /// default:
@@ -134,9 +164,10 @@ public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
     /// - `NSPersistentHistoryTrackingKey`: true
     /// - `NSPersistentStoreRemoteChangeNotificationPostOptionKey`: true
     ///
-    /// If you have a CloudKit container identifier(s) in the app's
-    /// entitlements the first identifier is assigned to the default
-    /// container store. Otherwise, the store is local.
+    /// If you have a CloudKit container identifier in the app's
+    /// entitlements the first identifier is used to set the
+    /// cloudKitContainerOptions identifier of the first
+    /// persistent store description. Otherwise, the store is local.
     ///
     /// If you want to change these defaults modify the store
     /// description before you load the store.
@@ -147,22 +178,33 @@ public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
     ///
     /// - Parameter mom: The managed object model.
     ///
+    /// - Parameter url: A URL for the location of the persistent store.
+    ///   If not specified the store is created using the container name
+    ///   in the default container directory. Default is `nil`.
+    ///
     /// - Parameter inMemory: Create the SQLite store in memory.
     ///   Default is `false`. Using an in-memory store overrides
     ///   the store url and sets `shouldAddStoreAsynchronously` to
     ///   `false.`
     ///
+    /// - Parameter syncDisabled: Disable CloudKit sync.
+    ///   Default is `false`. When `true` any cloudKitContainerOptions
+    ///   set on the store description are removed before loading the
+    ///   store. Use this for SwiftUI previews and testing.
+    ///
     /// - Returns: A `CoreDataCloudKitController` object.
     
-    public init(name: String, mom: NSManagedObjectModel, inMemory: Bool = false) {
+    public init(name: String, mom: NSManagedObjectModel, url: URL? = nil, inMemory: Bool = false, syncDisabled: Bool = false) {
+        self.syncDisabled = syncDisabled
         super.init(name: name, managedObjectModel: mom)
-        configureDefaults(inMemory: inMemory)
+        configureDefaults(url: url, inMemory: inMemory)
     }
     
     /// The `URL` of the persistent store for this Core Data Stack. If there
     /// is more than one store this property returns the first store it finds.
     /// The store may not yet exist. It will be created at this URL by default
     /// when first loaded.
+    
     public var storeURL: URL? {
         guard let firstDescription = persistentStoreDescriptions.first else {
             return nil
@@ -179,6 +221,7 @@ public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
     /// - `automaticallyMergesChangesFromParent`: `true`
     /// - `name`: `viewContext`
     /// - `mergePolicy`: `NSMergeByPropertyObjectTrumpMergePolicy`
+    /// - `transactionAuthor`: see `appTransactionAuthorName`.
     ///
     /// The query generation is also pinned to the current generation
     /// (unless this is an in-memory store).
@@ -187,6 +230,7 @@ public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
     ///   thread when the loading of the persistent store has completed.
     
     override public func loadPersistentStores(completionHandler block: @escaping (NSPersistentStoreDescription, Error?) -> Void) {
+        overrideStoreDescriptions(syncDisabled: syncDisabled)
         super.loadPersistentStores { storeDescription, error in
             var completionError: Error? = error
             if error == nil {
@@ -205,15 +249,25 @@ public final class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
         }
     }
        
-    private func configureDefaults(inMemory: Bool = false) {
+    private func configureDefaults(url: URL?, inMemory: Bool) {
         if let storeDescription = persistentStoreDescriptions.first {
             storeDescription.shouldAddStoreAsynchronously = true
             storeDescription.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
             storeDescription.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
+            if let url {
+                storeDescription.url = url
+            }
             if inMemory {
                 storeDescription.url = URL(fileURLWithPath: "/dev/null")
                 storeDescription.shouldAddStoreAsynchronously = false
             }
+        }
+    }
+    
+    private func overrideStoreDescriptions(syncDisabled: Bool) {
+        if syncDisabled == false { return }
+        for storeDescription in persistentStoreDescriptions {
+            storeDescription.cloudKitContainerOptions = nil
         }
     }
     
