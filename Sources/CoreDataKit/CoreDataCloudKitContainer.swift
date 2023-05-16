@@ -130,7 +130,7 @@ public class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
     ///   the store url and sets `shouldAddStoreAsynchronously` to
     ///   `false.`
     ///
-    ///  - Parameter syncDisabled: Disable CloudKit sync.
+    /// - Parameter syncDisabled: Disable CloudKit sync.
     ///   Default is `false`. When `true` any cloudKitContainerOptions
     ///   set on the store description are removed before loading the
     ///   store. Use this for SwiftUI previews and testing.
