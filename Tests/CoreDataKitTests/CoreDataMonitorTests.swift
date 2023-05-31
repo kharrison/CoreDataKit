@@ -58,11 +58,50 @@ final class CoreDataMonitorTests: XCTestCase {
     }
     
     func testNetworkStatusPublished() {
-        let monitor = CoreDataMonitor(networkStatus: .satisfied, active: false)
+        let monitor = CoreDataMonitor(active: false)
         
         let expectation = expectation(description: "Value published")
-        let cancellable = monitor.$networkStatus.sink { status in
-            XCTAssertEqual(status, .satisfied)
+        let cancellable = monitor.$networkPath.sink { path in
+            XCTAssertNil(path)
+            expectation.fulfill()
+        }
+        
+        waitForExpectations(timeout: 1)
+        cancellable.cancel()
+    }
+    
+    func testSetupEventPublished() {
+        let monitor = CoreDataMonitor(active: false)
+        
+        let expectation = expectation(description: "Value published")
+        let cancellable = monitor.$lastSetup.sink { event in
+            XCTAssertNil(event)
+            expectation.fulfill()
+        }
+        
+        waitForExpectations(timeout: 1)
+        cancellable.cancel()
+    }
+
+    func testImportEventPublished() {
+        let monitor = CoreDataMonitor(active: false)
+        
+        let expectation = expectation(description: "Value published")
+        let cancellable = monitor.$lastImport.sink { event in
+            XCTAssertNil(event)
+            expectation.fulfill()
+        }
+        
+        waitForExpectations(timeout: 1)
+        cancellable.cancel()
+    }
+
+    func testExportEventPublished() {
+        let monitor = CoreDataMonitor(active: false)
+        
+        let expectation = expectation(description: "Value published")
+        let cancellable = monitor.$lastExport.sink { event in
+            XCTAssertNil(event)
             expectation.fulfill()
         }
         

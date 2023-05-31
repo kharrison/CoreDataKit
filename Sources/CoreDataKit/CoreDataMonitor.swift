@@ -39,14 +39,14 @@ import Network
 public final class CoreDataMonitor: ObservableObject {
     /// CloudKit Account Status.
     /// The availability of the user's iCloud account.
-    @Published public private(set) var accountStatus: CKAccountStatus
+    @Published public private(set) var accountStatus: CKAccountStatus?
     
     /// CloudKit Account Error.
     @Published public private(set) var accountError: Error?
     
-    /// Network path status.
-    /// If available a  network connection can be made.
-    @Published public private(set) var networkStatus: NWPath.Status
+    /// Network path. The network availability status and
+    /// capabilities of the available interfaces.
+    @Published public private(set) var networkPath: NWPath?
     
     /// Last setup activity of the persistent CloudKit container,
     @Published public private(set) var lastSetup: NSPersistentCloudKitContainer.Event?
@@ -59,11 +59,11 @@ public final class CoreDataMonitor: ObservableObject {
 
     /// Is the container syncing? This is true if the user's
     /// iCloud account is available, the network status is
-    /// satisfied and there are errors from the last
-    /// setup, import or export CloudKit activies.
+    /// satisfied and there are no errors from the last
+    /// setup, import or export CloudKit activities.
     public var syncing: Bool {
         (accountStatus == .available) &&
-        (networkStatus == .satisfied) &&
+        (networkPath?.status == .satisfied) &&
         (lastSetup?.error == nil) &&
         (lastImport?.error == nil) &&
         (lastExport?.error == nil)
@@ -74,17 +74,15 @@ public final class CoreDataMonitor: ObservableObject {
     
     /// Create a Core Data Monitor object.
     /// - Parameters:
-    ///   - accountStatus: CloudKit Account status. Default is `.couldNotDetermine`
+    ///   - accountStatus: CloudKit Account status. Default is `nil`
     ///   - accountError: CloudKit Account error. Default is `nil`.
-    ///   - networkStatus: Network Status. Default is `.unsatisified`.
     ///   - active: Is the monitoring active or disabled. Default is `true`.
     ///
     ///   - Note: For normal use call this method with the default options.
     ///     Disable the active monitoring for unit testing and previews.
-    public init(accountStatus: CKAccountStatus = .couldNotDetermine, accountError: Error? = nil, networkStatus: NWPath.Status = .unsatisfied, active: Bool = true) {
+    public init(accountStatus: CKAccountStatus? = nil, accountError: Error? = nil, active: Bool = true) {
         self.accountStatus = accountStatus
         self.accountError = accountError
-        self.networkStatus = networkStatus
         
         if active {
             enableAccountMonitor()
@@ -118,7 +116,7 @@ public final class CoreDataMonitor: ObservableObject {
     private func enablePathMonitor() {
         pathMonitor.pathUpdateHandler = { path in
             DispatchQueue.main.async {
-                self.networkStatus = path.status
+                self.networkPath = path
             }
         }
         pathMonitor.start(queue: pathMonitorQueue)
