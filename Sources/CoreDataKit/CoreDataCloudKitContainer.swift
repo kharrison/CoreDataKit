@@ -57,7 +57,7 @@ import Foundation
 /// description before you load the store.
 
 @available(iOS 13.0, macOS 10.15, watchOS 6.0, tvOS 13.0, *)
-public class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
+public class CoreDataCloudKitContainer: NSPersistentCloudKitContainer, @unchecked Sendable {
     /// Author used for the viewContext as an identifier
     /// in persistent history transactions.
     
@@ -249,6 +249,63 @@ public class CoreDataCloudKitContainer: NSPersistentCloudKitContainer {
         }
     }
        
+    /// Returns a new managed object context that executes
+    /// on a private queue.
+    ///
+    /// The merge policy is property object trump
+    /// and the undo manager is disabled.
+    public override func newBackgroundContext() -> NSManagedObjectContext {
+        let context = super.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
+        context.undoManager = nil
+        return context
+    }
+    
+    /// Export the persistent store to a new location
+    ///
+    /// The first persistent store, if any, is migrated
+    /// to the new location.
+    ///
+    /// The SQLite WAL mode is disabled on the exported
+    /// store to force a checkpoint of all changes.
+    ///
+    /// - Parameter url: Destination URL
+    @available(iOS 15.0, *)
+    public func exportStore(to url: URL) throws {
+        guard let store = persistentStoreCoordinator.persistentStores.first else {
+            return
+        }
+        
+        // Options to disable WAL mode
+        let options = [
+            NSSQLitePragmasOption: ["journal_mode": "DELETE"]
+        ]
+        
+        // If the destination store exists, empty the database.
+        // This doesn't delete the database file.
+        _ = try persistentStoreCoordinator.destroyPersistentStore(
+            at: url,
+            type: .sqlite,
+            options: options
+        )
+        
+        // Move the existing store to the new location
+        _ = try persistentStoreCoordinator.migratePersistentStore(
+            store,
+            to: url,
+            options: options,
+            type: .sqlite
+        )
+    }
+    
+    /// Remove the first store from the persistent
+    /// store coordinator.
+    public func removeStore() throws {
+        if let store = persistentStoreCoordinator.persistentStores.first {
+            try persistentStoreCoordinator.remove(store)
+        }
+    }
+    
     private func configureDefaults(url: URL?, inMemory: Bool) {
         if let storeDescription = persistentStoreDescriptions.first {
             storeDescription.shouldAddStoreAsynchronously = true

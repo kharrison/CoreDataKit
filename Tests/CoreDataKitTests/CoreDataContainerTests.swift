@@ -138,7 +138,7 @@ final class CoreDataContainerTests: XCTestCase {
         XCTAssertTrue(container.isStoreLoaded)
     }
 
-    func testLoadStoreAsync() throws {
+    @MainActor func testLoadStoreAsync() throws {
         let container = try XCTUnwrap(container)
         let storeDescription = try XCTUnwrap(container.persistentStoreDescriptions.first)
         storeDescription.shouldAddStoreAsynchronously = true
@@ -153,7 +153,7 @@ final class CoreDataContainerTests: XCTestCase {
         XCTAssertTrue(container.isStoreLoaded)
     }
        
-    func testViewContextMergesChanges() throws {
+    @MainActor func testViewContextMergesChanges() throws {
         let container = try XCTUnwrap(container)
         let expect = expectation(description: "Store loaded")
         container.loadPersistentStores { description, error in
