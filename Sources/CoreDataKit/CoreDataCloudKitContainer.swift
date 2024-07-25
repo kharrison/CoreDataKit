@@ -270,7 +270,7 @@ public class CoreDataCloudKitContainer: NSPersistentCloudKitContainer, @unchecke
     /// store to force a checkpoint of all changes.
     ///
     /// - Parameter url: Destination URL
-    @available(iOS 15.0, *)
+    @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
     public func exportStore(to url: URL) throws {
         guard let store = persistentStoreCoordinator.persistentStores.first else {
             return
