@@ -100,8 +100,6 @@ public class CoreDataContainer: NSPersistentContainer, @unchecked Sendable {
     ///   Default is `false`. Using an in-memory store overrides
     ///   the store url and sets `shouldAddStoreAsynchronously` to
     ///   `false.`
-    ///
-    /// - Returns: A `CoreDataController` object.
     
     public convenience init(name: String, bundle: Bundle = .main, url: URL? = nil, inMemory: Bool = false) {
         guard let momURL = bundle.url(forResource: name, withExtension: "momd") else {
@@ -133,8 +131,6 @@ public class CoreDataContainer: NSPersistentContainer, @unchecked Sendable {
     ///   Default is `false`. Using an in-memory store overrides
     ///   the store url and sets `shouldAddStoreAsynchronously` to
     ///   `false.`
-    ///
-    /// - Returns: A `CoreDataController` object.
     
     public init(name: String, mom: NSManagedObjectModel, url: URL? = nil, inMemory: Bool = false) {
         super.init(name: name, managedObjectModel: mom)
@@ -170,7 +166,7 @@ public class CoreDataContainer: NSPersistentContainer, @unchecked Sendable {
     /// The query generation is also pinned to the current generation
     /// (unless this is an in-memory store).
     ///
-    /// - Parameter handler: This handler block is executed on the calling
+    /// - Parameter block: This handler block is executed on the calling
     ///   thread when the loading of the persistent store has completed.
     
     override public func loadPersistentStores(completionHandler block: @escaping (NSPersistentStoreDescription, Error?) -> Void) {

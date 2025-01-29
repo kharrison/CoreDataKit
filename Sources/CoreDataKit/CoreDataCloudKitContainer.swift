@@ -124,7 +124,7 @@ public class CoreDataCloudKitContainer: NSPersistentCloudKitContainer, @unchecke
     /// - Parameter url: A URL for the location of the persistent store.
     ///   If not specified the store is created using the container name
     ///   in the default container directory. Default is `nil`.
-
+    ///
     /// - Parameter inMemory: Create the SQLite store in memory.
     ///   Default is `false`. Using an in-memory store overrides
     ///   the store url and sets `shouldAddStoreAsynchronously` to
@@ -134,8 +134,6 @@ public class CoreDataCloudKitContainer: NSPersistentCloudKitContainer, @unchecke
     ///   Default is `false`. When `true` any cloudKitContainerOptions
     ///   set on the store description are removed before loading the
     ///   store. Use this for SwiftUI previews and testing.
-    ///
-    /// - Returns: A `CoreDataCloudKitController` object.
     
     public convenience init(name: String, bundle: Bundle = .main, url: URL? = nil, inMemory: Bool = false, syncDisabled: Bool = false) {
         guard let momURL = bundle.url(forResource: name, withExtension: "momd") else {
@@ -191,8 +189,6 @@ public class CoreDataCloudKitContainer: NSPersistentCloudKitContainer, @unchecke
     ///   Default is `false`. When `true` any cloudKitContainerOptions
     ///   set on the store description are removed before loading the
     ///   store. Use this for SwiftUI previews and testing.
-    ///
-    /// - Returns: A `CoreDataCloudKitController` object.
     
     public init(name: String, mom: NSManagedObjectModel, url: URL? = nil, inMemory: Bool = false, syncDisabled: Bool = false) {
         self.syncDisabled = syncDisabled
@@ -226,7 +222,7 @@ public class CoreDataCloudKitContainer: NSPersistentCloudKitContainer, @unchecke
     /// The query generation is also pinned to the current generation
     /// (unless this is an in-memory store).
     ///
-    /// - Parameter handler: This handler block is executed on the calling
+    /// - Parameter block: This handler block is executed on the calling
     ///   thread when the loading of the persistent store has completed.
     
     override public func loadPersistentStores(completionHandler block: @escaping (NSPersistentStoreDescription, Error?) -> Void) {
