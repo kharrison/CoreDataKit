@@ -1,4 +1,4 @@
-//  Copyright © 2021 Keith Harrison. All rights reserved.
+//  Copyright © 2021-2025 Keith Harrison. All rights reserved.
 //
 //  Redistribution and use in source and binary forms, with or without
 //  modification, are permitted provided that the following conditions are met:
@@ -160,7 +160,6 @@ import Testing
     }
 
     @Test func viewContextName() throws {
-        let container = try #require(container)
         container.loadPersistentStores { description, error in
             #expect(error == nil)
         }
