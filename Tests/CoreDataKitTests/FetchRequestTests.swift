@@ -1,4 +1,4 @@
-//  Copyright © 2021 Keith Harrison. All rights reserved.
+//  Copyright © 2021-2025 Keith Harrison. All rights reserved.
 //
 //  Redistribution and use in source and binary forms, with or without
 //  modification, are permitted provided that the following conditions are met:
@@ -28,27 +28,30 @@
 
 import CoreData
 import CoreDataKit
-import XCTest
+import Testing
 
-final class FetchRequestTests: XCTestCase {
-    func testAndPredicate() throws {
+struct FetchRequestTests {
+    @Test func andPredicate() throws {
         let request = NSFetchRequest<NSFetchRequestResult>()
         request.predicate = NSPredicate(format: "flag == true")
         request.andPredicate(predicate: NSPredicate(format: "green == false"))
-        XCTAssertEqual(request.predicate?.predicateFormat, "flag == 1 AND green == 0")
+        let result = try #require(request.predicate?.predicateFormat)
+        #expect(result == "flag == 1 AND green == 0")
     }
 
-    func testOrPredicate() throws {
+    @Test func orPredicate() throws {
         let request = NSFetchRequest<NSFetchRequestResult>()
         request.predicate = NSPredicate(format: "flag == true")
         request.orPredicate(predicate: NSPredicate(format: "green == false"))
-        XCTAssertEqual(request.predicate?.predicateFormat, "flag == 1 OR green == 0")
+        let result = try #require(request.predicate?.predicateFormat)
+        #expect(result == "flag == 1 OR green == 0")
     }
 
-    func testNotPredicate() throws {
+    @Test func notPredicate() throws {
         let request = NSFetchRequest<NSFetchRequestResult>()
         request.predicate = NSPredicate(format: "flag == true")
         request.notPredicate()
-        XCTAssertEqual(request.predicate?.predicateFormat, "NOT flag == 1")
+        let result = try #require(request.predicate?.predicateFormat)
+        #expect(result == "NOT flag == 1")
     }
 }
