@@ -28,176 +28,168 @@
 
 import CoreData
 import CoreDataKit
-import XCTest
+import Testing
 
-final class CoreDataContainerTests: XCTestCase {
+@MainActor struct CoreDataContainerTests {
     private let modelName = "CoreDataKit"
-    private var container: CoreDataContainer?
-  
-    override func setUpWithError() throws {
-        container = CoreDataContainer(name: modelName, bundle: .module, inMemory: true)
-    }
-    
-    override func tearDownWithError() throws {
-        container = nil
-    }
-       
-    func testContainerName() throws {
-        let container = try XCTUnwrap(container)
-        XCTAssertEqual(modelName, container.name)
+    private let container: CoreDataContainer
+
+    init() {
+        container = CoreDataContainer(
+            name: modelName, bundle: .module, inMemory: true)
     }
 
-    func testLoadMOM() throws {
-        let container = try XCTUnwrap(container)
+    @Test func containerName() throws {
+        #expect(modelName == container.name)
+    }
+
+    @Test func loadMOM() throws {
         let entities = container.managedObjectModel.entities
-        XCTAssertEqual(entities.count, 1)
+        #expect(entities.count == 1)
     }
 
-    func testDefaultStoreURL() throws {
-        let container = try XCTUnwrap(container)
-        XCTAssertNotNil(container.storeURL)
+    @Test func defaultStoreURL() throws {
+        #expect(container.storeURL != nil)
     }
 
-    func testStoreNotLoaded() throws {
-        let container = try XCTUnwrap(container)
-        XCTAssertFalse(container.isStoreLoaded)
-    }
-    
-    func testShouldMigrateStoreAutomatically() throws {
-        let container = try XCTUnwrap(container)
-        let storeDescription = try XCTUnwrap( container.persistentStoreDescriptions.first)
-        XCTAssertTrue(storeDescription.shouldMigrateStoreAutomatically)
-    }
-    
-    func testShouldInferMappingModelAutomatically() throws {
-        let container = try XCTUnwrap(container)
-        let storeDescription = try XCTUnwrap(container.persistentStoreDescriptions.first)
-        XCTAssertEqual(storeDescription.shouldInferMappingModelAutomatically, true)
-    }
-    
-    func testIsNotReadOnly() throws {
-        let container = try XCTUnwrap(container)
-        let storeDescription = try XCTUnwrap( container.persistentStoreDescriptions.first)
-        XCTAssertFalse(storeDescription.isReadOnly)
-    }
-    
-    func testShouldAddStoreAsynchronouslyTrueByDefault() throws {
-        container = CoreDataContainer(name: modelName, bundle: .module)
-        let container = try XCTUnwrap(container)
-        let storeDescription = try XCTUnwrap( container.persistentStoreDescriptions.first)
-        XCTAssertTrue(storeDescription.shouldAddStoreAsynchronously)
+    @Test func storeNotLoaded() throws {
+        #expect(!container.isStoreLoaded)
     }
 
-    func testShouldAddStoreAsynchronouslyFalseInMemory() throws {
-        let container = try XCTUnwrap(container)
-        let storeDescription = try XCTUnwrap( container.persistentStoreDescriptions.first)
-        XCTAssertFalse(storeDescription.shouldAddStoreAsynchronously)
-    }
-    
-    func testHistoryTrackingKeyTrueByDefault() throws {
-        let container = try XCTUnwrap(container)
-        let storeDescription = try XCTUnwrap( container.persistentStoreDescriptions.first)
-        let historyTrackingOption = try XCTUnwrap(storeDescription.options[NSPersistentHistoryTrackingKey] as? NSNumber)
-        XCTAssertTrue(historyTrackingOption.boolValue)
+    @Test func shouldMigrateStoreAutomatically() throws {
+        let storeDescription = try #require(
+            container.persistentStoreDescriptions.first)
+        #expect(storeDescription.shouldMigrateStoreAutomatically)
     }
 
-    func testCreateStoreInMemory() throws {
-        let container = try XCTUnwrap(container)
-        let storeDescription = try XCTUnwrap( container.persistentStoreDescriptions.first)
-        XCTAssertEqual(storeDescription.url, URL(fileURLWithPath: "/dev/null"))
+    @Test func shouldInferMappingModelAutomatically() throws {
+        let storeDescription = try #require(
+            container.persistentStoreDescriptions.first)
+        #expect(
+            storeDescription.shouldInferMappingModelAutomatically)
     }
-    
-    func testCreateStoreWithCustomURL() throws {
+
+    @Test func isNotReadOnly() throws {
+        let storeDescription = try #require(
+            container.persistentStoreDescriptions.first)
+        #expect(!storeDescription.isReadOnly)
+    }
+
+    @Test func shouldAddStoreAsynchronouslyTrueByDefault() throws {
+        let container = CoreDataContainer(name: modelName, bundle: .module)
+        let storeDescription = try #require(
+            container.persistentStoreDescriptions.first)
+        #expect(storeDescription.shouldAddStoreAsynchronously)
+    }
+
+    @Test func shouldAddStoreAsynchronouslyFalseInMemory() throws {
+        let storeDescription = try #require(
+            container.persistentStoreDescriptions.first)
+        #expect(!storeDescription.shouldAddStoreAsynchronously)
+    }
+
+    @Test func historyTrackingKeyTrueByDefault() throws {
+        let storeDescription = try #require(
+            container.persistentStoreDescriptions.first)
+        let historyTrackingOption = try #require(
+            storeDescription.options[NSPersistentHistoryTrackingKey]
+                as? NSNumber)
+        #expect(historyTrackingOption.boolValue)
+    }
+
+    @Test func createStoreInMemory() throws {
+        let storeDescription = try #require(
+            container.persistentStoreDescriptions.first)
+        #expect(storeDescription.url == URL(fileURLWithPath: "/dev/null"))
+    }
+
+    @Test func createStoreWithCustomURL() throws {
         let url = FileManager.default.temporaryDirectory
-        container = CoreDataContainer(name: modelName, bundle: .module, url: url)
-        let container = try XCTUnwrap(container)
-        let storeDescription = try XCTUnwrap( container.persistentStoreDescriptions.first)
-        XCTAssertEqual(storeDescription.url, url)
-    }
-    
-    func testInMemoryStoreOverridesCustomURL() throws {
-        let url = FileManager.default.temporaryDirectory
-        container = CoreDataContainer(name: modelName, bundle: .module, url: url, inMemory: true)
-        let container = try XCTUnwrap(container)
-        let storeDescription = try XCTUnwrap( container.persistentStoreDescriptions.first)
-        XCTAssertEqual(storeDescription.url, URL(fileURLWithPath: "/dev/null"))
-    }
-    
-    func testCeateWithMOM() throws {
-        let momURL = try XCTUnwrap(Bundle.module.url(forResource: modelName, withExtension: "momd"))
-        let mom = try XCTUnwrap(NSManagedObjectModel(contentsOf: momURL))
-        container = CoreDataContainer(name: modelName, mom: mom, inMemory: true)
-        _ = try XCTUnwrap(container)
+        let container = CoreDataContainer(
+            name: modelName, bundle: .module, url: url)
+        let storeDescription = try #require(
+            container.persistentStoreDescriptions.first)
+        #expect(storeDescription.url == url)
     }
 
-    func testLoadStoreSync() throws {
-        let container = try XCTUnwrap(container)
+    @Test func inMemoryStoreOverridesCustomURL() throws {
+        let url = FileManager.default.temporaryDirectory
+        let container = CoreDataContainer(
+            name: modelName, bundle: .module, url: url, inMemory: true)
+        let storeDescription = try #require(
+            container.persistentStoreDescriptions.first)
+        #expect(storeDescription.url == URL(fileURLWithPath: "/dev/null"))
+    }
+
+    @Test func ceateWithMOM() throws {
+        let momURL = try #require(
+            Bundle.module.url(forResource: modelName, withExtension: "momd"))
+        let mom = try #require(NSManagedObjectModel(contentsOf: momURL))
+        _ = CoreDataContainer(name: modelName, mom: mom, inMemory: true)
+    }
+
+    @Test func loadStoreSync() throws {
         container.loadPersistentStores { description, error in
-            XCTAssertNil(error)
+            #expect(error == nil)
         }
-        XCTAssertTrue(container.isStoreLoaded)
+        #expect(container.isStoreLoaded)
     }
 
-    @MainActor func testLoadStoreAsync() throws {
-        let container = try XCTUnwrap(container)
-        let storeDescription = try XCTUnwrap(container.persistentStoreDescriptions.first)
+    @Test func loadStoreAsync() async throws {
+        let storeDescription = try #require(
+            container.persistentStoreDescriptions.first)
         storeDescription.shouldAddStoreAsynchronously = true
 
-        let expect = expectation(description: "Store loaded")
-        container.loadPersistentStores { description, error in
-            XCTAssertNil(error)
-            expect.fulfill()
-        }
-
-        waitForExpectations(timeout: 2, handler: nil)
-        XCTAssertTrue(container.isStoreLoaded)
-    }
-       
-    @MainActor func testViewContextMergesChanges() throws {
-        let container = try XCTUnwrap(container)
-        let expect = expectation(description: "Store loaded")
-        container.loadPersistentStores { description, error in
-            XCTAssertNil(error)
-            expect.fulfill()
+        await withCheckedContinuation { continuation in
+            container.loadPersistentStores { description, error in
+                #expect(error == nil)
+                continuation.resume()
+            }
         }
         
-        waitForExpectations(timeout: 2, handler: nil)
-        XCTAssertTrue(container.viewContext.automaticallyMergesChangesFromParent)
+        #expect(container.isStoreLoaded)
     }
-    
-    func testViewContextName() throws {
-        let container = try XCTUnwrap(container)
+
+    @Test func viewContextMergesChanges() throws {
         container.loadPersistentStores { description, error in
-            XCTAssertNil(error)
+            #expect(error == nil)
         }
-        XCTAssertNotNil(container.viewContext.name)
+
+        #expect(
+            container.viewContext.automaticallyMergesChangesFromParent)
     }
-    
-    func testViewContextMergePolicy() throws {
-        let container = try XCTUnwrap(container)
+
+    @Test func viewContextName() throws {
+        let container = try #require(container)
         container.loadPersistentStores { description, error in
-            XCTAssertNil(error)
+            #expect(error == nil)
         }
-        let policy = try XCTUnwrap(container.viewContext.mergePolicy as? NSMergePolicy)
-        XCTAssertEqual(policy, NSMergePolicy.mergeByPropertyObjectTrump)
+        #expect(container.viewContext.name != nil)
     }
-    
-    func testDefaultTransactionAuthor() throws {
-        let container = try XCTUnwrap(container)
+
+    @Test func viewContextMergePolicy() throws {
         container.loadPersistentStores { description, error in
-            XCTAssertNil(error)
+            #expect(error == nil)
         }
-        let author = try XCTUnwrap(container.viewContext.transactionAuthor)
-        XCTAssertEqual(author, "app")
+        let policy = try #require(
+            container.viewContext.mergePolicy as? NSMergePolicy)
+        #expect(policy == NSMergePolicy.mergeByPropertyObjectTrump)
     }
-    
-    func testCustomTransactionAuthor() throws {
-        let container = try XCTUnwrap(container)
+
+    @Test func defaultTransactionAuthor() throws {
+        container.loadPersistentStores { description, error in
+            #expect(error == nil)
+        }
+        let author = try #require(container.viewContext.transactionAuthor)
+        #expect(author == "app")
+    }
+
+    @Test func customTransactionAuthor() throws {
         container.appTransactionAuthorName = "Test"
         container.loadPersistentStores { description, error in
-            XCTAssertNil(error)
+            #expect(error == nil)
         }
-        let author = try XCTUnwrap(container.viewContext.transactionAuthor)
-        XCTAssertEqual(author, "Test")
+        let author = try #require(container.viewContext.transactionAuthor)
+        #expect(author == "Test")
     }
 }
