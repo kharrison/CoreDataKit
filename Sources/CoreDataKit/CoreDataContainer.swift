@@ -182,7 +182,9 @@ public class CoreDataContainer: NSPersistentContainer, @unchecked Sendable {
                 // Pin the view context to the current query generation.
                 // This is not supported for an in-memory store
                 if storeDescription.url != URL(fileURLWithPath: "/dev/null") {
-                    completionError = self.pin(self.viewContext)
+                    if #available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *) {
+                        completionError = self.pin(self.viewContext)
+                    }
                 }
             }
             block(storeDescription, completionError)
@@ -284,13 +286,17 @@ public class CoreDataContainer: NSPersistentContainer, @unchecked Sendable {
             }
         }
     }
-    
+
+    @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
     private func pin(_ context: NSManagedObjectContext) -> Error? {
-        do {
-            try context.setQueryGenerationFrom(.current)
-        } catch {
-            return error
+        let error: Error? = context.performAndWait {
+            do {
+                try context.setQueryGenerationFrom(.current)
+                return nil
+            } catch {
+                return error
+            }
         }
-        return nil
+        return error
     }
 }
