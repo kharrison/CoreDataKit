@@ -112,6 +112,42 @@ public class CoreDataContainer: NSPersistentContainer, @unchecked Sendable {
 
         self.init(name: name, mom: mom, url: url, inMemory: inMemory)
     }
+    
+    /// Creates and returns a `CoreDataController` object with multiple
+    /// persistent stores.
+    /// 
+    /// The persistent store descriptions are created with a default
+    /// configuration. This loads the store synchronously and does
+    /// not enable history or remote change notifications. If you
+    /// want to change the default configuration do it before
+    /// loading the store(s).
+    ///
+    /// - Parameter name: The name of the persistent container.
+    ///   By default, this is used to name the persistent store
+    ///   sql file.
+    ///
+    /// - Parameter bundle: An optional bundle to load the model(s) from.
+    ///   Default is `.main`.
+    ///
+    /// - Parameter urls: One or more URLs for the location of the
+    ///   persistent stores. All stores are added to the container.
+
+    public init(name: String, bundle: Bundle = .main, urls: [URL]) {
+        guard let momURL = bundle.url(forResource: name, withExtension: "momd") else {
+            fatalError("Unable to find \(name).momd in bundle \(bundle.bundleURL)")
+        }
+        
+        guard let mom = NSManagedObjectModel(contentsOf: momURL) else {
+            fatalError("Unable to create model from \(momURL)")
+        }
+        
+        super.init(name: name, managedObjectModel: mom)
+
+        let descriptions: [NSPersistentStoreDescription] = urls.map {
+            NSPersistentStoreDescription(url: $0)
+        }
+        self.persistentStoreDescriptions = descriptions
+    }
 
     /// Creates and returns a `CoreDataController` object. It creates the
     /// persistent store coordinator and main managed object context but
