@@ -296,10 +296,9 @@ public class CoreDataCloudKitContainer: NSPersistentCloudKitContainer, @unchecke
         )
     }
     
-    /// Remove the first store from the persistent
-    /// store coordinator.
+    /// Remove all stores from the persistent store coordinator.
     public func removeStore() throws {
-        if let store = persistentStoreCoordinator.persistentStores.first {
+        for store in persistentStoreCoordinator.persistentStores {
             try persistentStoreCoordinator.remove(store)
         }
     }
