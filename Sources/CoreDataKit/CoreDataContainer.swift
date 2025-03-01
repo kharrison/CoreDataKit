@@ -248,7 +248,7 @@ public class CoreDataContainer: NSPersistentContainer, @unchecked Sendable {
     /// store to force a checkpoint of all changes.
     ///
     /// - Parameter url: Destination URL
-    @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
+    @available(macOS 12.0, iOS 15.0, macCatalyst 15.0, tvOS 15.0, watchOS 8.0, *)
     public func exportStore(to url: URL) throws {
         guard let store = persistentStoreCoordinator.persistentStores.first else {
             return
@@ -277,7 +277,7 @@ public class CoreDataContainer: NSPersistentContainer, @unchecked Sendable {
     }
     
     /// Remove all stores from the persistent store coordinator.
-    public func removeStore() throws {
+    public func removeStores() throws {
         for store in persistentStoreCoordinator.persistentStores {
             try persistentStoreCoordinator.remove(store)
         }
