@@ -304,6 +304,40 @@ public class CoreDataCloudKitContainer: NSPersistentCloudKitContainer, @unchecke
         }
     }
     
+    /// Delete the SQLite files for a store.
+    ///
+    /// Deletes the `.db`, `.db-shm` and `.db-wal` files
+    /// for an SQLite persistent store.
+    ///
+    /// - Parameters:
+    ///   - name: The name of the store (without extension).
+    ///   - pathExtension: File extension. Default is "db".
+    ///   - directoryURL: Optional URL for the containing directory.
+    ///     Defaults to nil which uses the default container directory.
+    
+    public class func deleteStore(name: String, pathExtension: String = "db", directoryURL: URL? = nil) {
+        let baseURL = directoryURL ?? CoreDataContainer.defaultDirectoryURL()
+        
+        let fileURL: URL
+        if #available(macOS 13.0, iOS 16.0, macCatalyst 16.0, tvOS 16.0, visionOS 1.0, watchOS 9.0, *) {
+            fileURL = baseURL.appending(path: name, directoryHint: .notDirectory)
+        } else {
+            fileURL = baseURL.appendingPathComponent(name, isDirectory: false)
+        }
+        
+        let dbURL = fileURL.appendingPathExtension(pathExtension)
+        try? FileManager.default.removeItem(at: dbURL)
+
+        let shmURL = fileURL.appendingPathExtension("\(pathExtension)-shm")
+        try? FileManager.default.removeItem(at: shmURL)
+
+        let walURL = fileURL.appendingPathExtension("\(pathExtension)-wal")
+        try? FileManager.default.removeItem(at: walURL)
+        
+        let journalURL = fileURL.appendingPathExtension("\(pathExtension)-journal")
+        try? FileManager.default.removeItem(at: journalURL)
+    }
+    
     private func configureDefaults(url: URL?, inMemory: Bool) {
         if let storeDescription = persistentStoreDescriptions.first {
             storeDescription.shouldAddStoreAsynchronously = true
