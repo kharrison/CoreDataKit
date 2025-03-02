@@ -115,24 +115,29 @@ public class CoreDataContainer: NSPersistentContainer, @unchecked Sendable {
     
     /// Creates and returns a `CoreDataController` object with multiple
     /// persistent stores.
-    /// 
+    ///  
     /// The persistent store descriptions are created with a default
     /// configuration. This loads the store synchronously and does
     /// not enable history or remote change notifications. If you
     /// want to change the default configuration do it before
     /// loading the store(s).
-    ///
+    /// 
     /// - Parameter name: The name of the persistent container.
     ///   By default, this is used to name the persistent store
     ///   sql file.
-    ///
+    /// 
     /// - Parameter bundle: An optional bundle to load the model(s) from.
     ///   Default is `.main`.
-    ///
+    /// 
     /// - Parameter urls: One or more URLs for the location of the
     ///   persistent stores. All stores are added to the container.
+    /// - Parameter isReadOnly: Is the store read-only. Default is `false`.
+    /// - Parameter shouldAddStoreAsynchronously: Load the store asynchronously.
+    ///   Default is `false`.
+    /// - Parameter historyTracking: Enable persistent history tracking.
+    ///   Default is `false`.
 
-    public init(name: String, bundle: Bundle = .main, urls: [URL]) {
+    public init(name: String, bundle: Bundle = .main, urls: [URL], isReadOnly: Bool = false, shouldAddStoreAsynchronously: Bool = false, historyTracking: Bool = false) {
         guard let momURL = bundle.url(forResource: name, withExtension: "momd") else {
             fatalError("Unable to find \(name).momd in bundle \(bundle.bundleURL)")
         }
@@ -144,8 +149,15 @@ public class CoreDataContainer: NSPersistentContainer, @unchecked Sendable {
         super.init(name: name, managedObjectModel: mom)
 
         let descriptions: [NSPersistentStoreDescription] = urls.map {
-            NSPersistentStoreDescription(url: $0)
+            let description = NSPersistentStoreDescription(url: $0)
+            description.isReadOnly = isReadOnly
+            description.shouldAddStoreAsynchronously = shouldAddStoreAsynchronously
+            if historyTracking {
+                description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
+            }
+            return description
         }
+        
         self.persistentStoreDescriptions = descriptions
     }
 
