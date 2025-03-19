@@ -1,4 +1,4 @@
-//  Copyright © 2022-2023 Keith Harrison. All rights reserved.
+//  Copyright © 2022-2025 Keith Harrison. All rights reserved.
 //
 //  Redistribution and use in source and binary forms, with or without
 //  modification, are permitted provided that the following conditions are met:
@@ -259,84 +259,6 @@ public class CoreDataCloudKitContainer: NSPersistentCloudKitContainer, @unchecke
         return context
     }
     
-    /// Export the persistent store to a new location
-    ///
-    /// The first persistent store, if any, is migrated
-    /// to the new location.
-    ///
-    /// The SQLite WAL mode is disabled on the exported
-    /// store to force a checkpoint of all changes.
-    ///
-    /// - Parameter url: Destination URL
-    @available(macOS 12.0, iOS 15.0,  macCatalyst 15.0, tvOS 15.0, watchOS 8.0, *)
-    public func exportStore(to url: URL) throws {
-        guard let store = persistentStoreCoordinator.persistentStores.first else {
-            return
-        }
-        
-        // Options to disable WAL mode
-        let options = [
-            NSSQLitePragmasOption: ["journal_mode": "DELETE"]
-        ]
-        
-        // If the destination store exists, empty the database.
-        // This doesn't delete the database file.
-        _ = try persistentStoreCoordinator.destroyPersistentStore(
-            at: url,
-            type: .sqlite,
-            options: options
-        )
-        
-        // Move the existing store to the new location
-        _ = try persistentStoreCoordinator.migratePersistentStore(
-            store,
-            to: url,
-            options: options,
-            type: .sqlite
-        )
-    }
-    
-    /// Remove all stores from the persistent store coordinator.
-    public func removeStores() throws {
-        for store in persistentStoreCoordinator.persistentStores {
-            try persistentStoreCoordinator.remove(store)
-        }
-    }
-    
-    /// Delete the SQLite files for a store.
-    ///
-    /// Deletes the `.db`, `.db-shm` and `.db-wal` files
-    /// for an SQLite persistent store.
-    ///
-    /// - Parameters:
-    ///   - name: The name of the store (without extension).
-    ///   - pathExtension: File extension. Default is "db".
-    ///   - directoryURL: Optional URL for the containing directory.
-    ///     Defaults to nil which uses the default container directory.
-    
-    public class func deleteStore(name: String, pathExtension: String = "db", directoryURL: URL? = nil) {
-        let baseURL = directoryURL ?? CoreDataContainer.defaultDirectoryURL()
-        
-        let fileURL: URL
-        if #available(macOS 13.0, iOS 16.0, macCatalyst 16.0, tvOS 16.0, visionOS 1.0, watchOS 9.0, *) {
-            fileURL = baseURL.appending(path: name, directoryHint: .notDirectory)
-        } else {
-            fileURL = baseURL.appendingPathComponent(name, isDirectory: false)
-        }
-        
-        let dbURL = fileURL.appendingPathExtension(pathExtension)
-        try? FileManager.default.removeItem(at: dbURL)
-
-        let shmURL = fileURL.appendingPathExtension("\(pathExtension)-shm")
-        try? FileManager.default.removeItem(at: shmURL)
-
-        let walURL = fileURL.appendingPathExtension("\(pathExtension)-wal")
-        try? FileManager.default.removeItem(at: walURL)
-        
-        let journalURL = fileURL.appendingPathExtension("\(pathExtension)-journal")
-        try? FileManager.default.removeItem(at: journalURL)
-    }
-    
     private func configureDefaults(url: URL?, inMemory: Bool) {
         if let storeDescription = persistentStoreDescriptions.first {
             storeDescription.shouldAddStoreAsynchronously = true
@@ -357,18 +279,5 @@ public class CoreDataCloudKitContainer: NSPersistentCloudKitContainer, @unchecke
         for storeDescription in persistentStoreDescriptions {
             storeDescription.cloudKitContainerOptions = nil
         }
-    }
-    
-    @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
-    private func pin(_ context: NSManagedObjectContext) -> Error? {
-        let error: Error? = context.performAndWait {
-            do {
-                try context.setQueryGenerationFrom(.current)
-                return nil
-            } catch {
-                return error
-            }
-        }
-        return error
     }
 }
