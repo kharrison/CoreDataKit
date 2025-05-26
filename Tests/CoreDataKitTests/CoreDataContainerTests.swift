@@ -88,6 +88,13 @@ import Testing
         #expect(!storeDescription.shouldAddStoreAsynchronously)
     }
 
+    @Test func shouldAddStoreSynchronously() throws {
+        let container = CoreDataContainer(name: modelName, bundle: .module, shouldAddStoreAsynchronously: false)
+        let storeDescription = try #require(
+            container.persistentStoreDescriptions.first)
+        #expect(storeDescription.shouldAddStoreAsynchronously == false)
+    }
+    
     @Test func historyTrackingKeyTrueByDefault() throws {
         let storeDescription = try #require(
             container.persistentStoreDescriptions.first)

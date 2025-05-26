@@ -45,12 +45,10 @@ import Foundation
 ///
 /// If you want to change these defaults modify the store
 /// description before you load the store.
-
 @available(iOS 10.0, macOS 10.12, watchOS 3.0, tvOS 10.0, *)
 public class CoreDataContainer: NSPersistentContainer, @unchecked Sendable {
     /// Author used for the viewContext as an identifier
     /// in persistent history transactions.
-    
     public var appTransactionAuthorName = "app"
 
     /// Default directory for the persistent stores
@@ -60,14 +58,16 @@ public class CoreDataContainer: NSPersistentContainer, @unchecked Sendable {
     /// - Note: Adding the launch argument "-UNITTEST" to the
     ///   scheme appends the directory "UNITTEST" to the
     ///   default directory returned by `NSPersistentContainer`.
-    
     override public class func defaultDirectoryURL() -> URL {
         if ProcessInfo.processInfo.arguments.contains("-UNITTEST") {
-            return super.defaultDirectoryURL().appendingPathComponent("UNITTEST", isDirectory: true)
+            return super.defaultDirectoryURL().appendingPathComponent(
+                "UNITTEST",
+                isDirectory: true
+            )
         }
         return super.defaultDirectoryURL()
     }
-            
+
     /// Creates and returns a `CoreDataController` object. It creates the
     /// managed object model, persistent store coordinator and main managed
     /// object context but does not load the persistent store.
@@ -100,35 +100,47 @@ public class CoreDataContainer: NSPersistentContainer, @unchecked Sendable {
     ///   Default is `false`. Using an in-memory store overrides
     ///   the store url and sets `shouldAddStoreAsynchronously` to
     ///   `false.`
-    
-    public convenience init(name: String, bundle: Bundle = .main, url: URL? = nil, inMemory: Bool = false) {
-        guard let momURL = bundle.url(forResource: name, withExtension: "momd") else {
-            fatalError("Unable to find \(name).momd in bundle \(bundle.bundleURL)")
+    ///
+    /// - Parameter shouldAddStoreAsynchronously: Load the store async.
+    ///   Default is `true`. This parameter is ignored for in-memory
+    ///   stores.
+    public convenience init(
+        name: String,
+        bundle: Bundle = .main,
+        url: URL? = nil,
+        inMemory: Bool = false,
+        shouldAddStoreAsynchronously: Bool = true
+    ) {
+        guard let momURL = bundle.url(forResource: name, withExtension: "momd")
+        else {
+            fatalError(
+                "Unable to find \(name).momd in bundle \(bundle.bundleURL)"
+            )
         }
-        
+
         guard let mom = NSManagedObjectModel(contentsOf: momURL) else {
             fatalError("Unable to create model from \(momURL)")
         }
 
-        self.init(name: name, mom: mom, url: url, inMemory: inMemory)
+        self.init(name: name, mom: mom, url: url, inMemory: inMemory, shouldAddStoreAsynchronously: shouldAddStoreAsynchronously)
     }
-    
+
     /// Creates and returns a `CoreDataController` object with multiple
     /// persistent stores.
-    ///  
+    ///
     /// The persistent store descriptions are created with a default
     /// configuration. This loads the store synchronously and does
     /// not enable history or remote change notifications. If you
     /// want to change the default configuration do it before
     /// loading the store(s).
-    /// 
+    ///
     /// - Parameter name: The name of the persistent container.
     ///   By default, this is used to name the persistent store
     ///   sql file.
-    /// 
+    ///
     /// - Parameter bundle: An optional bundle to load the model(s) from.
     ///   Default is `.main`.
-    /// 
+    ///
     /// - Parameter urls: One or more URLs for the location of the
     ///   persistent stores. All stores are added to the container.
     /// - Parameter isReadOnly: Is the store read-only. Default is `false`.
@@ -137,27 +149,41 @@ public class CoreDataContainer: NSPersistentContainer, @unchecked Sendable {
     /// - Parameter historyTracking: Enable persistent history tracking.
     ///   Default is `false`.
 
-    public init(name: String, bundle: Bundle = .main, urls: [URL], isReadOnly: Bool = false, shouldAddStoreAsynchronously: Bool = false, historyTracking: Bool = false) {
-        guard let momURL = bundle.url(forResource: name, withExtension: "momd") else {
-            fatalError("Unable to find \(name).momd in bundle \(bundle.bundleURL)")
+    public init(
+        name: String,
+        bundle: Bundle = .main,
+        urls: [URL],
+        isReadOnly: Bool = false,
+        shouldAddStoreAsynchronously: Bool = false,
+        historyTracking: Bool = false
+    ) {
+        guard let momURL = bundle.url(forResource: name, withExtension: "momd")
+        else {
+            fatalError(
+                "Unable to find \(name).momd in bundle \(bundle.bundleURL)"
+            )
         }
-        
+
         guard let mom = NSManagedObjectModel(contentsOf: momURL) else {
             fatalError("Unable to create model from \(momURL)")
         }
-        
+
         super.init(name: name, managedObjectModel: mom)
 
         let descriptions: [NSPersistentStoreDescription] = urls.map {
             let description = NSPersistentStoreDescription(url: $0)
             description.isReadOnly = isReadOnly
-            description.shouldAddStoreAsynchronously = shouldAddStoreAsynchronously
+            description.shouldAddStoreAsynchronously =
+                shouldAddStoreAsynchronously
             if historyTracking {
-                description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
+                description.setOption(
+                    true as NSNumber,
+                    forKey: NSPersistentHistoryTrackingKey
+                )
             }
             return description
         }
-        
+
         self.persistentStoreDescriptions = descriptions
     }
 
@@ -179,12 +205,25 @@ public class CoreDataContainer: NSPersistentContainer, @unchecked Sendable {
     ///   Default is `false`. Using an in-memory store overrides
     ///   the store url and sets `shouldAddStoreAsynchronously` to
     ///   `false.`
-    
-    public init(name: String, mom: NSManagedObjectModel, url: URL? = nil, inMemory: Bool = false) {
+    ///
+    /// - Parameter shouldAddStoreAsynchronously: Load the store async.
+    ///   Default is `true`. This parameter is ignored for in-memory
+    ///   stores.
+    public init(
+        name: String,
+        mom: NSManagedObjectModel,
+        url: URL? = nil,
+        inMemory: Bool = false,
+        shouldAddStoreAsynchronously: Bool = true
+    ) {
         super.init(name: name, managedObjectModel: mom)
-        configureDefaults(url: url, inMemory: inMemory)
+        configureDefaults(
+            url: url,
+            inMemory: inMemory,
+            shouldAddStoreAsynchronously: shouldAddStoreAsynchronously
+        )
     }
-    
+
     /// The `URL` of the persistent store for this Core Data Stack. If there
     /// is more than one store this property returns the first store it finds.
     /// The store may not yet exist. It will be created at this URL by default
@@ -216,21 +255,28 @@ public class CoreDataContainer: NSPersistentContainer, @unchecked Sendable {
     ///
     /// - Parameter block: This handler block is executed on the calling
     ///   thread when the loading of the persistent store has completed.
-    
-    override public func loadPersistentStores(completionHandler block: @escaping (NSPersistentStoreDescription, Error?) -> Void) {
+
+    override public func loadPersistentStores(
+        completionHandler block: @escaping (
+            NSPersistentStoreDescription, Error?
+        ) -> Void
+    ) {
         super.loadPersistentStores { storeDescription, error in
             var completionError: Error? = error
             if error == nil {
                 self.isStoreLoaded = true
                 self.viewContext.automaticallyMergesChangesFromParent = true
-                self.viewContext.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
+                self.viewContext.mergePolicy =
+                    NSMergePolicy.mergeByPropertyObjectTrump
                 self.viewContext.name = "viewContext"
-                self.viewContext.transactionAuthor = self.appTransactionAuthorName
-                
+                self.viewContext.transactionAuthor =
+                    self.appTransactionAuthorName
+
                 // Pin the view context to the current query generation.
                 // This is not supported for an in-memory store
                 if storeDescription.url != URL(fileURLWithPath: "/dev/null") {
-                    if #available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *) {
+                    if #available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0,
+                    *) {
                         completionError = self.pin(self.viewContext)
                     }
                 }
@@ -238,7 +284,7 @@ public class CoreDataContainer: NSPersistentContainer, @unchecked Sendable {
             block(storeDescription, completionError)
         }
     }
-    
+
     /// Returns a new managed object context that executes
     /// on a private queue.
     ///
@@ -250,11 +296,19 @@ public class CoreDataContainer: NSPersistentContainer, @unchecked Sendable {
         context.undoManager = nil
         return context
     }
-    
-    private func configureDefaults(url: URL?, inMemory: Bool) {
+
+    private func configureDefaults(
+        url: URL?,
+        inMemory: Bool,
+        shouldAddStoreAsynchronously: Bool = true
+    ) {
         if let storeDescription = persistentStoreDescriptions.first {
-            storeDescription.shouldAddStoreAsynchronously = true
-            storeDescription.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
+            storeDescription.shouldAddStoreAsynchronously =
+                shouldAddStoreAsynchronously
+            storeDescription.setOption(
+                true as NSNumber,
+                forKey: NSPersistentHistoryTrackingKey
+            )
             if let url {
                 storeDescription.url = url
             }
